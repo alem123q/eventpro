@@ -6,6 +6,20 @@ import Loading from '../components/Loading';
 import './EventDetail.css';
 import { mediaUrl, parseEventDate } from '../utils/format';
 
+// Siguiente estado permitido (el backend solo acepta borrador -> activo -> finalizado)
+const NEXT_STATUS = {
+  draft: {
+    status: 'active',
+    label: 'Activar evento',
+    confirm: 'Al activar el evento se habilita el check-in de invitados. ¿Continuar?',
+  },
+  active: {
+    status: 'finished',
+    label: 'Finalizar evento',
+    confirm: 'Un evento finalizado ya no admite check-in y no se puede reabrir. ¿Continuar?',
+  },
+};
+
 const STATUS_LABELS = {
   draft: 'Borrador',
   active: 'Activo',
@@ -19,6 +33,8 @@ export default function EventDetail() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [statusError, setStatusError] = useState('');
+  const [changingStatus, setChangingStatus] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +51,24 @@ export default function EventDetail() {
     fetchEvent();
     return () => { cancelled = true; };
   }, [id]);
+
+  const handleChangeStatus = async () => {
+    const next = NEXT_STATUS[event.status];
+    if (!next || !window.confirm(next.confirm)) return;
+    setChangingStatus(true);
+    setStatusError('');
+    try {
+      const { data } = await eventService.changeStatus(event.id, next.status);
+      setEvent((prev) => ({ ...prev, status: data.status }));
+    } catch (err) {
+      const data = err.response?.data;
+      setStatusError(
+        (Array.isArray(data) && data[0]) || data?.detail || data?.error || 'No se pudo cambiar el estado.',
+      );
+    } finally {
+      setChangingStatus(false);
+    }
+  };
 
   if (loading) return <Loading text="Cargando evento..." />;
 
@@ -76,11 +110,22 @@ export default function EventDetail() {
             <h1>{event.title}</h1>
           </div>
           <div className="detail-actions">
+            {NEXT_STATUS[event.status] && (
+              <button
+                className="btn btn-primary"
+                onClick={handleChangeStatus}
+                disabled={changingStatus}
+              >
+                {changingStatus ? 'Guardando...' : NEXT_STATUS[event.status].label}
+              </button>
+            )}
             <button className="btn btn-secondary" onClick={() => navigate(`/events/${id}/edit`)}>
               Editar
             </button>
           </div>
         </div>
+
+        {statusError && <p className="detail-status-error">{statusError}</p>}
 
         <div className="detail-body">
           <div className="detail-section">
