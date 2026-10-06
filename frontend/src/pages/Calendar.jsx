@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
 import './Calendar.css';
+import { parseEventDate } from '../utils/format';
 
 const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -41,7 +42,7 @@ export default function Calendar() {
 
   const monthEvents = {};
   events.forEach((e) => {
-    const d = new Date(e.event_date);
+    const d = parseEventDate(e.event_date);
     if (d.getFullYear() === year && d.getMonth() === month) {
       const key = d.getDate();
       if (!monthEvents[key]) monthEvents[key] = [];

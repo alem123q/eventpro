@@ -4,6 +4,7 @@ import { getCategoryLabel } from '../constants/categories';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
 import './EventDetail.css';
+import { mediaUrl, parseEventDate } from '../utils/format';
 
 const STATUS_LABELS = {
   draft: 'Borrador',
@@ -50,7 +51,7 @@ export default function EventDetail() {
 
   if (!event) return null;
 
-  const date = new Date(event.event_date).toLocaleDateString('es-CL', {
+  const date = parseEventDate(event.event_date).toLocaleDateString('es-CL', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -64,6 +65,9 @@ export default function EventDetail() {
       </button>
 
       <div className="detail-card">
+        {event.image && (
+          <img className="detail-image" src={mediaUrl(event.image)} alt={event.title} />
+        )}
         <div className="detail-header">
           <div>
             <span className="detail-status" data-status={event.status}>

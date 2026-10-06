@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { getCategoryLabel } from '../constants/categories';
+import { mediaUrl, parseEventDate } from '../utils/format';
 import './EventCard.css';
 
 const STATUS_LABELS = {
@@ -19,7 +20,7 @@ const STATUS_COLORS = {
 export default function EventCard({ event }) {
   const navigate = useNavigate();
 
-  const date = new Date(event.event_date);
+  const date = parseEventDate(event.event_date);
   const formattedDate = date.toLocaleDateString('es-CL', {
     day: 'numeric',
     month: 'long',
@@ -28,6 +29,9 @@ export default function EventCard({ event }) {
 
   return (
     <div className="event-card" onClick={() => navigate(`/events/${event.id}`)}>
+      {event.image && (
+        <img className="event-card-image" src={mediaUrl(event.image)} alt="" loading="lazy" />
+      )}
       <div className="event-card-header">
         <span
           className="event-card-status"

@@ -72,3 +72,12 @@
   font-weight: 500;
   color: var(--color-primary);
 }
+
+.event-card-image {
+  width: calc(100% + 2 * var(--spacing-lg));
+  max-width: none;
+  margin: calc(-1 * var(--spacing-lg)) calc(-1 * var(--spacing-lg)) 0;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
