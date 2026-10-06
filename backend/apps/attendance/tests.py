@@ -1,4 +1,3 @@
-import hashlib
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -18,8 +17,7 @@ from .services import AttendanceService
 
 
 def _qr(invitation_id):
-    raw = f'event-checkin-{invitation_id}'
-    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+    return Invitation.objects.get(id=invitation_id).qr_hash
 
 
 class ResolveInvitationFromQrTests(TestCase):

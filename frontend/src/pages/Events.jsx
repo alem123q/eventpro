@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PAGE_SIZE } from '../constants';
-import { EVENT_CATEGORIES, getCategoryLabel } from '../constants/categories';
+import { EVENT_CATEGORIES } from '../constants/categories';
 import { eventService } from '../services/eventService';
 import EventCard from '../components/EventCard';
 import Loading from '../components/Loading';

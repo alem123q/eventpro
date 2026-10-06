@@ -14,9 +14,9 @@ class InvitationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'first_name', 'last_name', 'email', 'phone',
             'rsvp_status', 'event', 'event_title',
-            'attended', 'created_at', 'updated_at',
+            'attended', 'qr_hash', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['rsvp_status', 'created_at', 'updated_at']
+        read_only_fields = ['rsvp_status', 'qr_hash', 'created_at', 'updated_at']
 
     def get_event_title(self, obj):
         return obj.event.title

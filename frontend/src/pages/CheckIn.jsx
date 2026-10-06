@@ -6,15 +6,6 @@ import { attendanceService } from '../services/attendanceService';
 import Loading from '../components/Loading';
 import './CheckIn.css';
 
-async function qrHash(invitationId) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`event-checkin-${invitationId}`);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.slice(0, 32);
-}
-
 export default function CheckIn() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -73,8 +64,7 @@ export default function CheckIn() {
     setCheckingIn(true);
     setMessage(null);
     try {
-      const code = await qrHash(guest.id);
-      await attendanceService.checkIn({ qr_code: code });
+      await attendanceService.checkIn({ qr_code: guest.qr_hash });
       setMessage({ type: 'success', text: `${guest.first_name} ${guest.last_name} registrado.` });
       loadGuests();
     } catch (err) {

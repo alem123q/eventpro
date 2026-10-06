@@ -1,14 +1,12 @@
-import hashlib
+import secrets
 
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 
 
-def generate_qr_hash(invitation_id):
-    raw = f'event-checkin-{invitation_id}'
-    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+def generate_qr_hash():
+    """Codigo QR aleatorio (128 bits). No se puede deducir a partir del id."""
+    return secrets.token_hex(16)
 
 
 class Invitation(models.Model):
@@ -37,9 +35,8 @@ class Invitation(models.Model):
         _('hash QR'),
         max_length=32,
         unique=True,
-        null=True,
-        blank=True,
-        db_index=True,
+        default=generate_qr_hash,
+        editable=False,
     )
     created_at = models.DateTimeField(_('fecha de creación'), auto_now_add=True)
     updated_at = models.DateTimeField(_('fecha de actualización'), auto_now=True)
@@ -68,9 +65,3 @@ class Invitation(models.Model):
     def full_name(self):
         return f'{self.first_name} {self.last_name}'.strip()
 
-
-@receiver(post_save, sender=Invitation)
-def set_invitation_qr_hash(sender, instance, created, **kwargs):
-    if created and not instance.qr_hash:
-        qr_hash = generate_qr_hash(instance.id)
-        Invitation.objects.filter(id=instance.id).update(qr_hash=qr_hash)

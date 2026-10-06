@@ -1,12 +1,5 @@
-import hashlib
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-
-def generate_qr_code(invitation_id):
-    raw = f'event-checkin-{invitation_id}'
-    return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
 class Attendance(models.Model):
@@ -48,5 +41,5 @@ class Attendance(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.qr_code:
-            self.qr_code = generate_qr_code(self.invitation_id)
+            self.qr_code = self.invitation.qr_hash
         super().save(*args, **kwargs)
