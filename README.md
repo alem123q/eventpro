@@ -83,4 +83,4 @@ docker compose exec backend python manage.py createsuperuser
 | API | http://localhost:8000/api/ |
 | Panel de administración | http://localhost:8000/admin/ |
 
-Más comandos útiles (logs, acceso a contenedores, tests) en [`README_DOCKER.md`](README_DOCKER.md).
+Más comandos útiles (logs, acceso a contenedores, migraciones) en [`README_DOCKER.md`](README_DOCKER.md).
