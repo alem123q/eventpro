@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { PAGE_SIZE } from '../constants';
 import { guestService } from '../services/guestService';
+import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
+import GuestQrModal from '../components/GuestQrModal';
 import './Guests.css';
 
 const RSVP_LABELS = {
@@ -43,6 +45,15 @@ export default function Guests() {
   const [guestForm, setGuestForm] = useState(INITIAL_GUEST);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+
+  const [qrGuest, setQrGuest] = useState(null);
+  const [eventTitle, setEventTitle] = useState('');
+
+  useEffect(() => {
+    eventService.retrieve(id)
+      .then(({ data }) => setEventTitle(data.title))
+      .catch(() => setEventTitle(''));
+  }, [id]);
 
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkData, setBulkData] = useState('');
@@ -290,6 +301,14 @@ export default function Guests() {
                           <option value="confirmed">Confirmado</option>
                           <option value="rejected">Rechazado</option>
                         </select>
+                        <button
+                          className="btn-icon"
+                          onClick={() => setQrGuest(guest)}
+                          title="Ver código QR"
+                          aria-label={`Ver código QR de ${guest.first_name}`}
+                        >
+                          🔳
+                        </button>
                         <button className="btn-icon" onClick={() => openEditModal(guest)} title="Editar">
                           ✏️
                         </button>
@@ -325,6 +344,14 @@ export default function Guests() {
             </div>
           )}
         </>
+      )}
+
+      {qrGuest && (
+        <GuestQrModal
+          guest={qrGuest}
+          eventTitle={eventTitle}
+          onClose={() => setQrGuest(null)}
+        />
       )}
 
       {modalOpen && (
