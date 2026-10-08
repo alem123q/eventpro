@@ -10,7 +10,7 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 
 ## Funcionalidades
 
-- **Cuentas de usuario:** registro, inicio de sesión con JWT, verificación de email, recuperación y cambio de contraseña, y perfil con foto.
+- **Cuentas de usuario:** registro, inicio de sesión con JWT, recuperación y cambio de contraseña, y perfil de usuario.
 - **Roles:** administrador, organizador y colaborador.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
@@ -70,10 +70,9 @@ cd eventpro
 docker compose up --build
 ```
 
-En otra terminal, aplicar las migraciones y crear un usuario administrador:
+Al arrancar, el backend aplica las migraciones automáticamente. Para entrar al panel de administración, en otra terminal crear un usuario administrador:
 
 ```bash
-docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 ```
 

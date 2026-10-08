@@ -161,7 +161,7 @@ SIMPLE_JWT = {
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@eventify.cl')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'EventPro <noreply@eventpro.local>')
 
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
