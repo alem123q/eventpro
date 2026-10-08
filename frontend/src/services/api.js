@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
-  headers: { 'Content-Type': 'application/json' },
+  // Sin Content-Type fijo: axios usa JSON para objetos y multipart para
+  // FormData. Forzar JSON convertia las imagenes en {} y el backend las rechazaba.
 });
 
 api.interceptors.request.use((config) => {

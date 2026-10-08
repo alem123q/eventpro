@@ -5,6 +5,7 @@ import { dashboardService } from '../services/dashboardService';
 import StatCard from '../components/StatCard';
 import Loading from '../components/Loading';
 import './Dashboard.css';
+import { parseEventDate } from '../utils/format';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -113,10 +114,10 @@ export default function Dashboard() {
               >
                 <div className="upcoming-date">
                   <span className="upcoming-day">
-                    {new Date(event.event_date).getDate()}
+                    {parseEventDate(event.event_date).getDate()}
                   </span>
                   <span className="upcoming-month">
-                    {new Date(event.event_date).toLocaleString('es', { month: 'short' })}
+                    {parseEventDate(event.event_date).toLocaleString('es', { month: 'short' })}
                   </span>
                 </div>
                 <div className="upcoming-info">

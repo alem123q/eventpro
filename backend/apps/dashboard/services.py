@@ -62,14 +62,17 @@ class DashboardService:
             .values_list('category', 'count'),
         )
 
-        events_by_month = dict(
-            events_qs.annotate(
+        # Las claves se pasan a texto ('2026-12'): JSON no admite fechas como clave
+        events_by_month = {
+            month.strftime('%Y-%m'): count
+            for month, count in events_qs.annotate(
                 month=TruncMonth('event_date'),
             )
             .values('month')
             .annotate(count=Count('id'))
-            .values_list('month', 'count'),
-        )
+            .order_by('month')
+            .values_list('month', 'count')
+        }
 
         upcoming = []
         for e in upcoming_events:
