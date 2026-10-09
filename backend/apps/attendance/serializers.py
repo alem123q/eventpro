@@ -65,6 +65,9 @@ class AttendanceDetailSerializer(serializers.ModelSerializer):
 
 class AttendanceCheckinSerializer(serializers.Serializer):
     qr_code = serializers.CharField(max_length=255)
+    # Evento en el que se esta haciendo el check-in. Si se envia, el codigo
+    # tiene que pertenecer a ese evento.
+    event = serializers.IntegerField(required=False)
 
     def validate_qr_code(self, value):
         if not value.strip():

@@ -39,9 +39,9 @@ class AttendanceService:
         ).filter(qr_hash=qr_code).first()
 
         if invitation is None:
-            raise ValidationError(
-                'Código QR inválido. No se encontró una invitación que coincida.',
-            )
+            raise ValidationError({
+                'detail': 'Código QR inválido. No se encontró una invitación que coincida.',
+            })
         return invitation
 
     @staticmethod
@@ -52,14 +52,17 @@ class AttendanceService:
             ).select_for_update().get(id=invitation.id)
 
             if inv.rsvp_status != Invitation.RSVPStatus.CONFIRMED:
-                raise ValidationError(
-                    'La invitación no tiene RSVP confirmado.',
-                )
+                raise ValidationError({
+                    'detail': (
+                        f'{inv.full_name} todavía no confirmó asistencia (RSVP no confirmado). '
+                        'Marcalo como confirmado en la lista de invitados para registrar su ingreso.'
+                    ),
+                })
 
             if inv.event.status != Event.Status.ACTIVE:
-                raise ValidationError(
-                    'El evento no está activo.',
-                )
+                raise ValidationError({
+                    'detail': 'El evento no está activo. Activalo desde el detalle del evento para hacer el check-in.',
+                })
 
             attendance = Attendance.objects.filter(invitation=inv).first()
             if attendance is not None:

@@ -21,3 +21,19 @@ export function mediaUrl(path) {
   const backendOrigin = new URL(api.defaults.baseURL, window.location.origin).origin;
   return `${backendOrigin}${path}`;
 }
+
+/**
+ * Extrae un mensaje legible de un error de la API. DRF puede responder
+ * {detail: '...'}, {error: '...'}, ['...'] o {campo: ['...']}.
+ */
+export function apiErrorMessage(err, fallback = 'Ocurrió un error.') {
+  const data = err?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (Array.isArray(data)) return data[0] || fallback;
+  if (data.detail) return Array.isArray(data.detail) ? data.detail[0] : data.detail;
+  if (data.error) return data.error;
+  const first = Object.values(data)[0];
+  if (Array.isArray(first)) return first[0] || fallback;
+  return typeof first === 'string' ? first : fallback;
+}

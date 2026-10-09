@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.exceptions import ValidationError
 
 from .models import Invitation
 from .serializers import (
@@ -78,6 +79,11 @@ class InvitationService:
 
     @staticmethod
     def change_rsvp(invitation, new_status):
+        already_attended = hasattr(invitation, 'attendance')
+        if already_attended and new_status != Invitation.RSVPStatus.CONFIRMED:
+            raise ValidationError({
+                'detail': 'Este invitado ya ingresó al evento: no se puede quitar su confirmación.',
+            })
         invitation.rsvp_status = new_status
         invitation.save()
         return invitation

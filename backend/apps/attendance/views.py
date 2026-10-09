@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -42,9 +42,20 @@ def attendance_checkin(request):
             'No tienes permiso para registrar asistencia en este evento.',
         )
 
+    expected_event = serializer.validated_data.get('event')
+    if expected_event is not None and invitation.event_id != expected_event:
+        raise ValidationError({
+            'detail': (
+                f'Este código es de {invitation.full_name}, invitado a otro evento '
+                f'("{invitation.event.title}"). No se registró el ingreso.'
+            ),
+        })
+
+    already_checked_in = Attendance.objects.filter(invitation=invitation).exists()
     attendance = AttendanceService.checkin(invitation)
-    response_serializer = AttendanceDetailSerializer(attendance)
-    return Response(response_serializer.data, status=status.HTTP_200_OK)
+    data = dict(AttendanceDetailSerializer(attendance).data)
+    data['already_checked_in'] = already_checked_in
+    return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

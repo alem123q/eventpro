@@ -5,6 +5,7 @@ import { guestService } from '../services/guestService';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
 import GuestQrModal from '../components/GuestQrModal';
+import { apiErrorMessage } from '../utils/format';
 import './Guests.css';
 
 const RSVP_LABELS = {
@@ -183,8 +184,9 @@ export default function Guests() {
     try {
       await guestService.changeRsvp(guestId, status);
       loadGuests();
-    } catch {
-      alert('Error al cambiar estado RSVP.');
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Error al cambiar estado RSVP.'));
+      loadGuests();
     }
   };
 

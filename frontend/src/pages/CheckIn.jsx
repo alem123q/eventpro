@@ -4,7 +4,42 @@ import { PAGE_SIZE } from '../constants';
 import { guestService } from '../services/guestService';
 import { attendanceService } from '../services/attendanceService';
 import Loading from '../components/Loading';
+import { apiErrorMessage } from '../utils/format';
 import './CheckIn.css';
+
+const RSVP_LABELS = {
+  confirmed: 'Confirmado',
+  pending: 'Pendiente',
+  rejected: 'Rechazado',
+};
+
+const RSVP_COLORS = {
+  confirmed: '#22c55e',
+  pending: '#f59e0b',
+  rejected: '#ef4444',
+};
+
+function GuestCard({ guest, action }) {
+  return (
+    <div className="checkin-guest-card">
+      <div className="checkin-guest-info">
+        <span className="checkin-guest-name">
+          {guest.first_name} {guest.last_name}
+        </span>
+        <span className="checkin-guest-email">{guest.email}</span>
+      </div>
+      <div className="checkin-guest-status">
+        <span
+          className="rsvp-badge"
+          style={{ background: RSVP_COLORS[guest.rsvp_status] }}
+        >
+          {RSVP_LABELS[guest.rsvp_status] || guest.rsvp_status}
+        </span>
+      </div>
+      {action}
+    </div>
+  );
+}
 
 export default function CheckIn() {
   const { id } = useParams();
@@ -41,51 +76,57 @@ export default function CheckIn() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Registra el ingreso y dice siempre a quien se registro. El evento viaja
+  // en el pedido para que el backend rechace codigos de otros eventos.
+  const checkIn = async (code) => {
+    setCheckingIn(true);
+    setMessage(null);
+    try {
+      const { data } = await attendanceService.checkIn({ qr_code: code, event: Number(id) });
+      if (data.already_checked_in) {
+        const hora = new Date(data.checkin_time).toLocaleTimeString('es-AR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        });
+        setMessage({
+          type: 'warning',
+          text: `${data.invitation_name} ya había ingresado (a las ${hora}). No se registró de nuevo.`,
+        });
+      } else {
+        setMessage({ type: 'success', text: `✓ Ingreso registrado: ${data.invitation_name}.` });
+      }
+      loadGuests();
+      return true;
+    } catch (err) {
+      setMessage({ type: 'error', text: apiErrorMessage(err, 'Error al realizar check-in.') });
+      return false;
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
   const handleQrCheckIn = async () => {
     const code = qrCode.trim();
     if (!code) return;
-
-    setCheckingIn(true);
-    setMessage(null);
-    try {
-      await attendanceService.checkIn({ qr_code: code });
-      setMessage({ type: 'success', text: 'Check-in exitoso.' });
-      setQrCode('');
-      loadGuests();
-    } catch (err) {
-      const detail = err.response?.data?.detail || err.response?.data?.error || 'Error al realizar check-in.';
-      setMessage({ type: 'error', text: detail });
-    } finally {
-      setCheckingIn(false);
-    }
+    const ok = await checkIn(code);
+    if (ok) setQrCode('');
   };
 
-  const handleGuestCheckIn = async (guest) => {
-    setCheckingIn(true);
-    setMessage(null);
-    try {
-      await attendanceService.checkIn({ qr_code: guest.qr_hash });
-      setMessage({ type: 'success', text: `${guest.first_name} ${guest.last_name} registrado.` });
-      loadGuests();
-    } catch (err) {
-      const detail = err.response?.data?.detail || err.response?.data?.error || 'Error al registrar asistencia.';
-      setMessage({ type: 'error', text: detail });
-    } finally {
-      setCheckingIn(false);
-    }
-  };
+  const query = search.trim().toLowerCase();
+  const filtered = guests.filter((g) => (
+    !query ||
+    g.first_name.toLowerCase().includes(query) ||
+    g.last_name.toLowerCase().includes(query) ||
+    g.email.toLowerCase().includes(query)
+  ));
 
-  const filtered = guests.filter((g) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      g.first_name.toLowerCase().includes(q) ||
-      g.last_name.toLowerCase().includes(q) ||
-      g.email.toLowerCase().includes(q)
-    );
-  });
+  const toCheckIn = filtered.filter((g) => !g.attended && g.rsvp_status === 'confirmed');
+  const unconfirmed = filtered.filter((g) => !g.attended && g.rsvp_status !== 'confirmed');
+  const attended = filtered.filter((g) => g.attended);
 
-  const pendingGuests = filtered.filter((g) => !g.attended);
+  const totalConfirmed = guests.filter((g) => g.rsvp_status === 'confirmed').length;
+  const totalAttended = guests.filter((g) => g.attended).length;
 
   return (
     <div className="checkin-page">
@@ -95,7 +136,9 @@ export default function CheckIn() {
 
       <div className="checkin-header">
         <h1>Check-in</h1>
-        <p className="checkin-subtitle">Registra la asistencia de los invitados</p>
+        <p className="checkin-subtitle">
+          Registra la asistencia de los invitados · {totalAttended} de {totalConfirmed} confirmados ingresaron
+        </p>
       </div>
 
       <div className="checkin-qr-section">
@@ -120,7 +163,7 @@ export default function CheckIn() {
       </div>
 
       {message && (
-        <div className={`checkin-message checkin-message-${message.type}`}>
+        <div className={`checkin-message checkin-message-${message.type}`} role="status">
           {message.text}
         </div>
       )}
@@ -136,47 +179,76 @@ export default function CheckIn() {
         />
       </div>
 
-      {loading ? (
+      {loading && guests.length === 0 ? (
         <Loading text="Cargando invitados..." />
       ) : error ? (
         <div className="checkin-error">{error}</div>
-      ) : pendingGuests.length === 0 ? (
-        <div className="checkin-empty">
-          {search ? 'No se encontraron invitados pendientes.' : 'Todos los invitados han sido registrados.'}
-        </div>
       ) : (
-        <div className="checkin-guest-list">
-          {pendingGuests.map((guest) => (
-            <div key={guest.id} className="checkin-guest-card">
-              <div className="checkin-guest-info">
-                <span className="checkin-guest-name">
-                  {guest.first_name} {guest.last_name}
-                </span>
-                <span className="checkin-guest-email">{guest.email}</span>
+        <>
+          <section className="checkin-group">
+            <h2 className="checkin-group-title">Por ingresar ({toCheckIn.length})</h2>
+            {toCheckIn.length === 0 ? (
+              <div className="checkin-empty">
+                {query ? 'Ningún invitado confirmado coincide con la búsqueda.' : 'No quedan invitados confirmados por ingresar.'}
               </div>
-              <div className="checkin-guest-status">
-                <span
-                  className="rsvp-badge"
-                  style={{
-                    background:
-                      guest.rsvp_status === 'confirmed' ? '#22c55e' :
-                      guest.rsvp_status === 'rejected' ? '#ef4444' : '#f59e0b',
-                  }}
-                >
-                  {guest.rsvp_status === 'confirmed' ? 'Confirmado' :
-                   guest.rsvp_status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                </span>
+            ) : (
+              <div className="checkin-guest-list">
+                {toCheckIn.map((guest) => (
+                  <GuestCard
+                    key={guest.id}
+                    guest={guest}
+                    action={(
+                      <button
+                        className="btn btn-primary checkin-btn"
+                        onClick={() => checkIn(guest.qr_hash)}
+                        disabled={checkingIn}
+                      >
+                        Registrar
+                      </button>
+                    )}
+                  />
+                ))}
               </div>
-              <button
-                className="btn btn-primary checkin-btn"
-                onClick={() => handleGuestCheckIn(guest)}
-                disabled={checkingIn}
-              >
-                Registrar
-              </button>
-            </div>
-          ))}
-        </div>
+            )}
+          </section>
+
+          {unconfirmed.length > 0 && (
+            <section className="checkin-group">
+              <h2 className="checkin-group-title">Sin confirmar ({unconfirmed.length})</h2>
+              <p className="checkin-group-hint">
+                Para registrar su ingreso, primero marcalos como confirmados en la lista de invitados.
+              </p>
+              <div className="checkin-guest-list">
+                {unconfirmed.map((guest) => (
+                  <GuestCard
+                    key={guest.id}
+                    guest={guest}
+                    action={(
+                      <button className="btn btn-secondary checkin-btn" disabled>
+                        No confirmado
+                      </button>
+                    )}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {attended.length > 0 && (
+            <section className="checkin-group">
+              <h2 className="checkin-group-title">Ya ingresaron ({attended.length})</h2>
+              <div className="checkin-guest-list">
+                {attended.map((guest) => (
+                  <GuestCard
+                    key={guest.id}
+                    guest={guest}
+                    action={<span className="checkin-done">✓ Ingresó</span>}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );

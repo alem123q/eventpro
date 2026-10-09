@@ -481,3 +481,86 @@ class CheckinConcurrentTests(TransactionTestCase):
         with self.assertRaises(ValidationError) as ctx:
             AttendanceService.checkin(self.invitation)
         self.assertIn('activo', str(ctx.exception))
+
+
+class CheckinPageScenarioTests(TestCase):
+    """Casos encontrados probando la pantalla de check-in."""
+
+    def setUp(self):
+        self.organizer = User.objects.create_user(
+            email='org2@test.com', username='organizer2', password='Pass1234',
+            first_name='Org', last_name='Dos',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.organizer)
+        self.event_a = Event.objects.create(
+            title='Evento A', event_date='2026-12-01',
+            organizer=self.organizer, status=Event.Status.ACTIVE,
+        )
+        self.event_b = Event.objects.create(
+            title='Evento B', event_date='2026-12-02',
+            organizer=self.organizer, status=Event.Status.ACTIVE,
+        )
+        self.juan = Invitation.objects.create(
+            first_name='Juan', last_name='Díaz', email='juan@test.com',
+            event=self.event_a, rsvp_status=Invitation.RSVPStatus.CONFIRMED,
+        )
+        self.pedro = Invitation.objects.create(
+            first_name='Pedro', last_name='Gómez', email='pedro@test.com',
+            event=self.event_b, rsvp_status=Invitation.RSVPStatus.CONFIRMED,
+        )
+        self.url = reverse('attendance-checkin')
+
+    def _checkin(self, invitation, event=None):
+        payload = {'qr_code': invitation.qr_hash}
+        if event is not None:
+            payload['event'] = event.id
+        return self.client.post(self.url, payload, format='json')
+
+    def test_code_from_other_event_is_rejected(self):
+        response = self._checkin(self.pedro, event=self.event_a)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('otro evento', response.data['detail'])
+        self.assertFalse(Attendance.objects.filter(invitation=self.pedro).exists())
+
+    def test_code_from_same_event_is_accepted(self):
+        response = self._checkin(self.juan, event=self.event_a)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['already_checked_in'])
+        self.assertEqual(response.data['invitation_name'], 'Juan Díaz')
+
+    def test_second_checkin_is_flagged(self):
+        self._checkin(self.juan, event=self.event_a)
+        response = self._checkin(self.juan, event=self.event_a)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['already_checked_in'])
+        self.assertEqual(Attendance.objects.filter(invitation=self.juan).count(), 1)
+
+    def test_errors_have_detail_message(self):
+        response = self.client.post(self.url, {'qr_code': 'no-existe'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('inválido', response.data['detail'])
+
+    def test_cannot_unconfirm_guest_who_already_attended(self):
+        self._checkin(self.juan, event=self.event_a)
+
+        response = self.client.patch(
+            reverse('invitation-rsvp', args=[self.juan.id]),
+            {'rsvp_status': 'pending'}, format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.juan.refresh_from_db()
+        self.assertEqual(self.juan.rsvp_status, Invitation.RSVPStatus.CONFIRMED)
+
+    def test_can_change_rsvp_before_attending(self):
+        response = self.client.patch(
+            reverse('invitation-rsvp', args=[self.juan.id]),
+            {'rsvp_status': 'pending'}, format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
