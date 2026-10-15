@@ -10,7 +10,7 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 
 ## Funcionalidades
 
-- **Cuentas de usuario:** registro, inicio de sesión con JWT, recuperación y cambio de contraseña, y perfil de usuario.
+- **Cuentas de usuario:** registro con verificación de email, inicio de sesión con JWT, recuperación y cambio de contraseña, y perfil de usuario.
 - **Roles:** administrador, organizador y colaborador.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
@@ -55,7 +55,7 @@ Cada app del backend separa la lógica de negocio (`services.py`) de las vistas,
 
 | Recurso | Ruta |
 |---|---|
-| Autenticación | `/api/auth/` (register, login, logout, refresh, forgot-password, reset-password…) |
+| Autenticación | `/api/auth/` (register, login, logout, refresh, verify-email, resend-verification, forgot-password, reset-password…) |
 | Usuarios | `/api/users/` |
 | Eventos | `/api/events/` |
 | Invitaciones | `/api/invitations/` |
@@ -94,5 +94,14 @@ Para escanear los QR con la cámara del celular, con el celular conectado a la m
 1. En la computadora, averiguar su IP local (en Windows: `ipconfig`, dato «Dirección IPv4», por ejemplo `192.168.0.15`).
 2. En el navegador del celular, abrir `https://<IP>:5173` (por ejemplo `https://192.168.0.15:5173`) y aceptar el aviso del certificado.
 3. Si no carga, permitir el acceso en el Firewall de Windows (Docker Desktop / puerto 5173 en redes privadas).
+
+### Emails en desarrollo
+
+En desarrollo los emails no se envían: se imprimen en la consola de Docker (`docker compose logs backend`). Los enlaces de verificación de email y de recuperación de contraseña aparecen además en una línea aparte, listos para copiar:
+
+```
+>>> Enlace de verificación de email para usuario@correo.com:
+>>> https://localhost:5173/verify-email?token=...
+```
 
 Más comandos útiles (logs, acceso a contenedores, migraciones) en [`README_DOCKER.md`](README_DOCKER.md).
