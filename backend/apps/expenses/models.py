@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -31,7 +33,7 @@ class Expense(models.Model):
         _('monto'),
         max_digits=12,
         decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+        validators=[MinValueValidator(Decimal('0.01'))],
     )
     paid_by = models.CharField(_('pagado por'), max_length=150, blank=True)
     expense_date = models.DateField(_('fecha del gasto'), default=timezone.localdate)

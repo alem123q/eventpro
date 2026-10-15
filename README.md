@@ -81,8 +81,18 @@ docker compose exec backend python manage.py createsuperuser
 
 | Servicio | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
+| Frontend | https://localhost:5173 |
 | API | http://localhost:8000/api/ |
 | Panel de administración | http://localhost:8000/admin/ |
+
+El frontend usa HTTPS con un certificado de desarrollo autofirmado (la cámara del navegador solo funciona con HTTPS). La primera vez el navegador muestra un aviso de seguridad: elegir «Configuración avanzada» → «Continuar a localhost».
+
+### Usarlo desde el celular
+
+Para escanear los QR con la cámara del celular, con el celular conectado a la misma red WiFi que la computadora:
+
+1. En la computadora, averiguar su IP local (en Windows: `ipconfig`, dato «Dirección IPv4», por ejemplo `192.168.0.15`).
+2. En el navegador del celular, abrir `https://<IP>:5173` (por ejemplo `https://192.168.0.15:5173`) y aceptar el aviso del certificado.
+3. Si no carga, permitir el acceso en el Firewall de Windows (Docker Desktop / puerto 5173 en redes privadas).
 
 Más comandos útiles (logs, acceso a contenedores, migraciones) en [`README_DOCKER.md`](README_DOCKER.md).

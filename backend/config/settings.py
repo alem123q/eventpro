@@ -20,7 +20,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',')
 
 
 INSTALLED_APPS = [
@@ -160,7 +160,7 @@ SIMPLE_JWT = {
 }
 
 
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://localhost:5173')
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'EventPro <noreply@eventpro.local>')
 
@@ -172,7 +172,7 @@ EMAIL_BACKEND = os.environ.get(
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://localhost:3000',
+    'https://localhost:5173,http://localhost:5173,http://localhost:3000',
 ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True

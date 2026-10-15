@@ -118,3 +118,10 @@
   color: #b91c1c;
   font-size: 0.9rem;
 }
+
+@media (max-width: 768px) {
+  .detail-header {
+    flex-wrap: wrap;
+    padding: var(--spacing-md);
+  }
+}

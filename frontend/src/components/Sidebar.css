@@ -81,3 +81,16 @@
 .sidebar-label {
   font-weight: 500;
 }
+
+/* Celular: el menu queda oculto a la izquierda y se desliza al abrirlo */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+}

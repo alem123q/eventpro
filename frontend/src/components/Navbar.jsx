@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
 
-export default function Navbar() {
+export default function Navbar({ onToggleMenu }) {
   const { user, logout } = useContext(AuthContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -16,6 +16,14 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
+        <button
+          type="button"
+          className="navbar-menu-btn"
+          onClick={onToggleMenu}
+          aria-label="Abrir menú"
+        >
+          ☰
+        </button>
         <span className="navbar-logo">EventPro</span>
       </div>
 

@@ -7,6 +7,27 @@
   margin-left: var(--sidebar-width);
   margin-top: var(--navbar-height);
   flex: 1;
+  /* Sin esto, una tabla ancha estira toda la pagina en vez de desplazarse */
+  min-width: 0;
   padding: var(--spacing-lg);
   min-height: calc(100vh - var(--navbar-height));
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: var(--spacing-md);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 150;
+  }
 }
