@@ -199,3 +199,10 @@
 .bulk-errors {
   margin-top: var(--spacing-sm);
 }
+
+@media (max-width: 768px) {
+  .guests-header {
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+}

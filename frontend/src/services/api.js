@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  // Ruta relativa: el servidor del frontend reenvia /api al backend (ver vite.config.js)
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   // Sin Content-Type fijo: axios usa JSON para objetos y multipart para
   // FormData. Forzar JSON convertia las imagenes en {} y el backend las rechazaba.
 });
