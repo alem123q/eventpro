@@ -10,21 +10,76 @@ export function decodeCanvas(canvas, width, height) {
 
 /**
  * Recorta una region de la imagen, la lleva a un tamano comodo para jsQR y
- * busca el codigo. Al achicar con suavizado se atenua el "moire" que aparece
- * al fotografiar una pantalla.
+ * busca el codigo. La reduccion se hace de a mitades: asi se promedian los
+ * pixeles y se borra el "moire" o la grilla del monitor que aparecen al
+ * fotografiar una pantalla (reducir de un solo paso los deja visibles).
  */
 function decodeRegion(bitmap, canvas, sx, sy, sw, sh, targetMax) {
   const scale = Math.min(1.5, targetMax / Math.max(sw, sh));
   const width = Math.max(1, Math.round(sw * scale));
   const height = Math.max(1, Math.round(sh * scale));
+
+  let source = bitmap;
+  let srcRect = [sx, sy, sw, sh];
+  let curW = sw;
+  let curH = sh;
+  while (curW / 2 >= width && curH / 2 >= height) {
+    curW = Math.round(curW / 2);
+    curH = Math.round(curH / 2);
+    const step = document.createElement('canvas');
+    step.width = curW;
+    step.height = curH;
+    const sctx = step.getContext('2d');
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(source, ...srcRect, 0, 0, curW, curH);
+    source = step;
+    srcRect = [0, 0, curW, curH];
+  }
+
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, width, height);
+  ctx.drawImage(source, ...srcRect, 0, 0, width, height);
   const { data } = ctx.getImageData(0, 0, width, height);
-  return jsQR(data, width, height, { inversionAttempts: 'attemptBoth' })?.data?.trim() || null;
+  const found = jsQR(data, width, height, { inversionAttempts: 'attemptBoth' });
+  if (found?.data) return found.data.trim();
+  // Segundo intento: blanco y negro puro con umbral automatico (Otsu). Ayuda
+  // con fotos de pantalla de bajo contraste o con brillo desparejo.
+  binarizeOtsu(data);
+  return jsQR(data, width, height, { inversionAttempts: 'dontInvert' })?.data?.trim() || null;
+}
+
+/** Convierte la imagen (RGBA) a blanco y negro con el umbral de Otsu. */
+function binarizeOtsu(data) {
+  const n = data.length / 4;
+  const gray = new Uint8Array(n);
+  const hist = new Array(256).fill(0);
+  for (let i = 0; i < n; i += 1) {
+    const g = (data[i * 4] * 299 + data[i * 4 + 1] * 587 + data[i * 4 + 2] * 114) / 1000 | 0;
+    gray[i] = g;
+    hist[g] += 1;
+  }
+  let sum = 0;
+  for (let t = 0; t < 256; t += 1) sum += t * hist[t];
+  let sumB = 0, wB = 0, best = 0, threshold = 127;
+  for (let t = 0; t < 256; t += 1) {
+    wB += hist[t];
+    if (wB === 0) continue;
+    const wF = n - wB;
+    if (wF === 0) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > best) { best = between; threshold = t; }
+  }
+  for (let i = 0; i < n; i += 1) {
+    const v = gray[i] > threshold ? 255 : 0;
+    data[i * 4] = v; data[i * 4 + 1] = v; data[i * 4 + 2] = v;
+  }
 }
 
 async function decodeWithNativeDetector(bitmap) {
@@ -64,8 +119,10 @@ export async function decodeImageFile(file) {
     const canvas = document.createElement('canvas');
     const attempts = [];
 
-    // 1) La foto completa a distintos tamanos
-    for (const size of [1200, 800]) attempts.push([0, 0, W, H, size]);
+    // 1) La foto completa a distintos tamanos. Los tamanos chicos sirven
+    //    cuando el QR llena la foto: al achicarla se borra la grilla de
+    //    pixeles del monitor que aparece al fotografiar una pantalla de cerca.
+    for (const size of [600, 1200, 400, 800]) attempts.push([0, 0, W, H, size]);
 
     // 2) Recortes centrados: el QR suele estar donde se apunto la camara
     for (const frac of [0.6, 0.4, 0.28]) {
@@ -79,9 +136,6 @@ export async function decodeImageFile(file) {
     for (const fx of [0, 0.25, 0.5]) {
       for (const fy of [0, 0.25, 0.5]) attempts.push([W * fx, H * fy, W * frac, H * frac, 800]);
     }
-
-    // 4) Ultimo recurso: la foto completa en alta resolucion
-    attempts.push([0, 0, W, H, 1800]);
 
     const start = performance.now();
     for (const [sx, sy, sw, sh, size] of attempts) {
