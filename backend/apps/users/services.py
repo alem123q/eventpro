@@ -9,6 +9,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 logger = logging.getLogger(__name__)
 
+
+def _show_dev_link(title, email, url):
+    """En desarrollo los mails se imprimen en la consola codificados
+    (quoted-printable: el enlace aparece cortado y con '=3D'). Se muestra
+    ademas el enlace limpio para poder copiarlo."""
+    if 'console' in settings.EMAIL_BACKEND:
+        print(f'\n>>> {title} para {email}:\n>>> {url}\n', flush=True)
+
 from .models import EmailVerificationToken, PasswordResetToken, User
 from .serializers import (
     AdminUserUpdateSerializer,
@@ -92,6 +100,7 @@ class AuthService:
         PasswordResetToken.objects.create(user=user, token=token)
 
         reset_url = f"{settings.FRONTEND_URL or 'http://localhost:5173'}/reset-password?token={token}"
+        _show_dev_link('Enlace para restablecer la contraseña', user.email, reset_url)
 
         try:
             send_mail(
@@ -191,6 +200,7 @@ class AuthService:
         EmailVerificationToken.objects.create(user=user, token=token)
 
         verify_url = f"{settings.FRONTEND_URL or 'http://localhost:5173'}/verify-email?token={token}"
+        _show_dev_link('Enlace de verificación de email', user.email, verify_url)
 
         try:
             send_mail(
