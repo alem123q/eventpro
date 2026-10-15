@@ -12,6 +12,7 @@ import EventForm from './pages/EventForm.jsx';
 import Guests from './pages/Guests.jsx';
 import CheckIn from './pages/CheckIn.jsx';
 import AttendanceHistory from './pages/AttendanceHistory.jsx';
+import Expenses from './pages/Expenses.jsx';
 import Calendar from './pages/Calendar.jsx';
 import Profile from './pages/Profile.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
@@ -112,6 +113,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <CheckIn />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/:id/expenses"
+        element={
+          <ProtectedRoute>
+            <Expenses />
           </ProtectedRoute>
         }
       />

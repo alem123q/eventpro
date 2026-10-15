@@ -1,8 +1,9 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncMonth
 
 from attendance.models import Attendance
 from events.models import Event
+from expenses.models import Expense
 from invitations.models import Invitation
 
 
@@ -104,6 +105,8 @@ class DashboardService:
             'total_attendances': total_attendances,
             'attendance_rate': attendance_rate,
             'expected_guests': expected_guests,
+            'total_expenses': Expense.objects.filter(event_id__in=event_ids)
+            .aggregate(total=Sum('amount'))['total'] or 0,
             'events_by_category': events_by_category,
             'events_by_month': events_by_month,
         }

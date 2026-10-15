@@ -13,7 +13,7 @@ class EventListSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'event_time', 'location',
-            'category', 'image', 'status', 'organizer_name',
+            'category', 'image', 'budget', 'status', 'organizer_name',
             'guest_count', 'confirmed_count', 'created_at',
         ]
 
@@ -31,7 +31,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'event_time',
-            'location', 'category', 'image', 'status',
+            'location', 'category', 'image', 'budget', 'status',
             'organizer', 'organizer_name',
             'guest_count', 'confirmed_count', 'attendance_count',
             'created_at', 'updated_at',
@@ -47,7 +47,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'title', 'description', 'event_date', 'event_time',
-            'location', 'category', 'image',
+            'location', 'category', 'image', 'budget',
         ]
 
     def validate_event_date(self, value):
@@ -64,7 +64,7 @@ class EventUpdateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'title', 'description', 'event_date', 'event_time',
-            'location', 'category', 'image',
+            'location', 'category', 'image', 'budget',
         ]
 
     def validate_event_date(self, value):

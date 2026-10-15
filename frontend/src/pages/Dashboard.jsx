@@ -5,7 +5,7 @@ import { dashboardService } from '../services/dashboardService';
 import StatCard from '../components/StatCard';
 import Loading from '../components/Loading';
 import './Dashboard.css';
-import { parseEventDate } from '../utils/format';
+import { formatMoney, parseEventDate } from '../utils/format';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -104,6 +104,12 @@ export default function Dashboard() {
           hint={`${stats.total_attendances ?? 0} de ${stats.expected_guests ?? 0} ingresaron`}
           icon="📈"
           color="#8b5cf6"
+        />
+        <StatCard
+          title="Total Gastado"
+          value={formatMoney(stats.total_expenses)}
+          icon="💰"
+          color="#0ea5e9"
         />
       </div>
 

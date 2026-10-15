@@ -17,6 +17,7 @@ export default function EventForm() {
     event_time: '',
     location: '',
     category: 'other',
+    budget: '',
     image: null,
   });
   const [loading, setLoading] = useState(isEditing);
@@ -38,6 +39,7 @@ export default function EventForm() {
           event_time: data.event_time || '',
           location: data.location || '',
           category: data.category || 'other',
+          budget: data.budget ?? '',
           image: null,
         });
       } catch {
@@ -64,6 +66,7 @@ export default function EventForm() {
     const errs = {};
     if (!form.title.trim()) errs.title = 'El título es obligatorio.';
     if (!form.event_date) errs.event_date = 'La fecha es obligatoria.';
+    if (form.budget !== '' && Number(form.budget) < 0) errs.budget = 'El presupuesto no puede ser negativo.';
     return errs;
   };
 
@@ -86,6 +89,8 @@ export default function EventForm() {
       if (form.event_time) payload.append('event_time', form.event_time);
       if (form.location) payload.append('location', form.location);
       payload.append('category', form.category);
+      // Vacio = sin presupuesto (al editar, borra el que tenia)
+      if (form.budget !== '' || isEditing) payload.append('budget', form.budget);
       if (form.image) payload.append('image', form.image);
 
       if (isEditing) {
@@ -208,6 +213,21 @@ export default function EventForm() {
                 onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="budget">Presupuesto en $ (opcional)</label>
+            <input
+              id="budget"
+              name="budget"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Ej. 12000"
+              value={form.budget}
+              onChange={handleChange}
+            />
+            {errors.budget && <span className="error-text">{errors.budget}</span>}
           </div>
 
           <div className="form-group">

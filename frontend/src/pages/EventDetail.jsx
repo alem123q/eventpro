@@ -161,6 +161,18 @@ export default function EventDetail() {
           </div>
 
           <div className="detail-section">
+            <h3>Gastos</h3>
+            <div className="detail-actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate(`/events/${id}/expenses`)}
+              >
+                Gestionar Gastos
+              </button>
+            </div>
+          </div>
+
+          <div className="detail-section">
             <h3>Asistencia</h3>
             <div className="detail-actions">
               <button

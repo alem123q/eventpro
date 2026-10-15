@@ -14,7 +14,8 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 - **Roles:** administrador, organizador y colaborador.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
-- **Asistencia:** check-in de invitados con código único e historial de ingresos.
+- **Asistencia:** check-in de invitados con código QR único (se puede ver, descargar o imprimir) e historial de ingresos.
+- **Gastos:** registro de gastos por evento con categorías, presupuesto opcional y control de lo gastado contra lo presupuestado.
 - **Dashboard:** métricas generales de eventos, invitaciones y asistencia.
 - **Calendario:** vista de los eventos por fecha.
 
@@ -38,6 +39,7 @@ eventpro/
 │       ├── events/       Gestión de eventos
 │       ├── invitations/  Invitados y confirmaciones (RSVP)
 │       ├── attendance/   Check-in e historial de asistencia
+│       ├── expenses/     Gastos y presupuesto por evento
 │       └── dashboard/    Estadísticas
 ├── frontend/           Interfaz en React
 │   └── src/
@@ -58,6 +60,7 @@ Cada app del backend separa la lógica de negocio (`services.py`) de las vistas,
 | Eventos | `/api/events/` |
 | Invitaciones | `/api/invitations/` |
 | Asistencia | `/api/attendance/` |
+| Gastos | `/api/expenses/` (y `/api/expenses/summary/?event=<id>`) |
 | Estadísticas | `/api/dashboard/stats/` |
 
 ## Cómo ejecutarlo

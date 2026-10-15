@@ -37,3 +37,15 @@ export function apiErrorMessage(err, fallback = 'Ocurrió un error.') {
   if (Array.isArray(first)) return first[0] || fallback;
   return typeof first === 'string' ? first : fallback;
 }
+
+const moneyFormatter = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 2,
+});
+
+/** 4500 -> '$ 4.500,00' */
+export function formatMoney(value) {
+  const number = Number(value);
+  return moneyFormatter.format(Number.isFinite(number) ? number : 0);
+}

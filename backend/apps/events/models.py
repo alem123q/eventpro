@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -33,6 +34,14 @@ class Event(models.Model):
         max_length=100,
         choices=Category.choices,
         default=Category.OTHER,
+    )
+    budget = models.DecimalField(
+        _('presupuesto'),
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0)],
     )
     image = models.ImageField(
         _('imagen'),

@@ -3,7 +3,7 @@ from django.test.runner import DiscoverRunner
 # Las apps viven en backend/apps/ y se importan como `users`, `events`, etc.
 # El descubrimiento por defecto las importaria como `apps.users`, lo que rompe
 # los modelos. Sin argumentos, se testean estas apps por su nombre real.
-LOCAL_APPS = ['users', 'events', 'invitations', 'attendance', 'dashboard']
+LOCAL_APPS = ['users', 'events', 'invitations', 'attendance', 'dashboard', 'expenses']
 
 
 class LocalAppsTestRunner(DiscoverRunner):

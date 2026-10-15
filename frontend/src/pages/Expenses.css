@@ -1,0 +1,226 @@
+.expenses-page {
+  max-width: 1100px;
+}
+
+.expenses-page > .btn-secondary {
+  margin-bottom: var(--spacing-md);
+}
+
+.expenses-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.expenses-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.expenses-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.expenses-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--color-danger);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* --- Presupuesto --- */
+
+.budget-card {
+  --budget-color: var(--color-success);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  border-left: 4px solid var(--budget-color);
+}
+
+.budget-warning { --budget-color: var(--color-warning); }
+.budget-over { --budget-color: var(--color-danger); }
+
+.budget-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.budget-figures > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+}
+
+.budget-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-remaining {
+  color: var(--budget-color);
+}
+
+.budget-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--budget-color);
+  transition: width 0.3s ease;
+}
+
+.budget-hint {
+  margin-top: var(--spacing-sm);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.budget-over .budget-hint {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* --- Totales por categoria --- */
+
+.expenses-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.category-chip {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.category-chip-label {
+  color: var(--color-text-secondary);
+}
+
+.category-chip-value {
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Tabla --- */
+
+.expenses-table-wrapper {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.expenses-table th {
+  text-align: left;
+  padding: 12px var(--spacing-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.expenses-table td {
+  padding: 12px var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.expenses-table tbody tr:hover td {
+  background: var(--color-primary-light);
+}
+
+.expenses-table .col-amount {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.expenses-table tfoot td {
+  font-weight: 700;
+  border-bottom: none;
+  background: var(--color-bg);
+}
+
+.expense-concept {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.expense-notes {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.expense-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.expenses-empty {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+}
+
+.expenses-empty p {
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 640px) {
+  .expenses-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .budget-figures {
+    gap: var(--spacing-md);
+  }
+}
