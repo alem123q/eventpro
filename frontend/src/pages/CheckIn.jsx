@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PAGE_SIZE } from '../constants';
 import { guestService } from '../services/guestService';
@@ -6,6 +6,9 @@ import { attendanceService } from '../services/attendanceService';
 import Loading from '../components/Loading';
 import { apiErrorMessage } from '../utils/format';
 import './CheckIn.css';
+
+// El escaner y la libreria de lectura de QR se descargan solo cuando se usan
+const QrScanner = lazy(() => import('../components/QrScanner'));
 
 const RSVP_LABELS = {
   confirmed: 'Confirmado',
@@ -52,6 +55,9 @@ export default function CheckIn() {
   const [qrCode, setQrCode] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
   const [message, setMessage] = useState(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [readingPhoto, setReadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
 
   const loadGuests = async () => {
     setLoading(true);
@@ -78,9 +84,11 @@ export default function CheckIn() {
 
   // Registra el ingreso y dice siempre a quien se registro. El evento viaja
   // en el pedido para que el backend rechace codigos de otros eventos.
+  // Devuelve el mensaje mostrado, para que el escaner lo muestre tambien.
   const checkIn = async (code) => {
     setCheckingIn(true);
     setMessage(null);
+    let msg;
     try {
       const { data } = await attendanceService.checkIn({ qr_code: code, event: Number(id) });
       if (data.already_checked_in) {
@@ -89,28 +97,52 @@ export default function CheckIn() {
           minute: '2-digit',
           hourCycle: 'h23',
         });
-        setMessage({
+        msg = {
           type: 'warning',
           text: `${data.invitation_name} ya había ingresado (a las ${hora}). No se registró de nuevo.`,
-        });
+        };
       } else {
-        setMessage({ type: 'success', text: `✓ Ingreso registrado: ${data.invitation_name}.` });
+        msg = { type: 'success', text: `✓ Ingreso registrado: ${data.invitation_name}.` };
       }
       loadGuests();
-      return true;
     } catch (err) {
-      setMessage({ type: 'error', text: apiErrorMessage(err, 'Error al realizar check-in.') });
-      return false;
+      msg = { type: 'error', text: apiErrorMessage(err, 'Error al realizar check-in.') };
     } finally {
       setCheckingIn(false);
+    }
+    setMessage(msg);
+    return msg;
+  };
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setReadingPhoto(true);
+    setMessage(null);
+    try {
+      const { decodeImageFile } = await import('../utils/qr');
+      const code = await decodeImageFile(file);
+      if (code) {
+        await checkIn(code);
+      } else {
+        setMessage({
+          type: 'error',
+          text: 'No se encontró un código QR en la foto. Probá de nuevo con el código más cerca y enfocado.',
+        });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'No se pudo leer la imagen.' });
+    } finally {
+      setReadingPhoto(false);
     }
   };
 
   const handleQrCheckIn = async () => {
     const code = qrCode.trim();
     if (!code) return;
-    const ok = await checkIn(code);
-    if (ok) setQrCode('');
+    const msg = await checkIn(code);
+    if (msg.type !== 'error') setQrCode('');
   };
 
   const query = search.trim().toLowerCase();
@@ -160,7 +192,33 @@ export default function CheckIn() {
             {checkingIn ? 'Registrando...' : 'Registrar'}
           </button>
         </div>
+        <div className="checkin-scan-row">
+          <button className="btn btn-primary" onClick={() => setScannerOpen(true)}>
+            📷 Escanear con cámara
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={readingPhoto}
+          >
+            {readingPhoto ? 'Leyendo foto...' : '🖼️ Leer desde una foto'}
+          </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={handlePhoto}
+          />
+        </div>
       </div>
+
+      {scannerOpen && (
+        <Suspense fallback={null}>
+          <QrScanner onDetected={checkIn} onClose={() => setScannerOpen(false)} />
+        </Suspense>
+      )}
 
       {message && (
         <div className={`checkin-message checkin-message-${message.type}`} role="status">
