@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Events from './pages/Events.jsx';
 import EventDetail from './pages/EventDetail.jsx';
@@ -60,6 +61,8 @@ export default function App() {
           </PublicRoute>
         }
       />
+      {/* Sin PublicRoute: el enlace del mail tiene que funcionar con o sin sesion iniciada */}
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route
         path="/dashboard"
         element={

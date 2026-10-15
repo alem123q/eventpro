@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { authService } from '../services/authService';
@@ -15,6 +15,27 @@ export default function Profile() {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [verifyMsg, setVerifyMsg] = useState('');
+  const [sendingVerify, setSendingVerify] = useState(false);
+
+  // Trae los datos actualizados (por ejemplo, si el email se verifico desde
+  // otro dispositivo despues de iniciar sesion)
+  useEffect(() => {
+    authService.getProfile().then(({ data }) => updateUser(data)).catch(() => {});
+  }, [updateUser]);
+
+  const handleResendVerification = async () => {
+    setSendingVerify(true);
+    setVerifyMsg('');
+    try {
+      await authService.resendVerification(user.email);
+      setVerifyMsg(`Te enviamos un enlace nuevo a ${user.email}.`);
+    } catch {
+      setVerifyMsg('No se pudo enviar el enlace. Probá de nuevo más tarde.');
+    } finally {
+      setSendingVerify(false);
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -44,6 +65,22 @@ export default function Profile() {
           {user?.first_name} {user?.last_name}
         </h1>
         <p className="profile-email">{user?.email}</p>
+        {user?.email_verified ? (
+          <p className="profile-verify profile-verify-ok">✓ Email verificado</p>
+        ) : (
+          <div className="profile-verify profile-verify-pending">
+            <span>Email sin verificar</span>
+            <button
+              type="button"
+              className="profile-verify-btn"
+              onClick={handleResendVerification}
+              disabled={sendingVerify}
+            >
+              {sendingVerify ? 'Enviando...' : 'Reenviar enlace'}
+            </button>
+          </div>
+        )}
+        {verifyMsg && <p className="profile-verify-msg" role="status">{verifyMsg}</p>}
         <p className="profile-role">{user?.role === 'admin' ? 'Administrador' : 'Organizador'}</p>
 
         <div className="profile-actions">
@@ -56,7 +93,6 @@ export default function Profile() {
           <button
             className="btn btn-secondary"
             onClick={() => navigate('/change-password')}
-            style={{ marginLeft: '8px' }}
           >
             Cambiar Contraseña
           </button>
