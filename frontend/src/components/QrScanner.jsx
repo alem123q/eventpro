@@ -29,6 +29,7 @@ export default function QrScanner({ onDetected, onClose }) {
   const streamRef = useRef(null);
   const timerRef = useRef(null);
   const busyRef = useRef(false);
+  const frameRef = useRef(0);
   const lastCodeRef = useRef({ code: null, at: 0 });
   const onDetectedRef = useRef(onDetected);
 
@@ -54,13 +55,22 @@ export default function QrScanner({ onDetected, onClose }) {
       if (busyRef.current || !video || video.readyState < 2 || !video.videoWidth) return;
       if (!canvasRef.current) canvasRef.current = document.createElement('canvas');
       const canvas = canvasRef.current;
-      // Se analiza una version reducida del cuadro: alcanza y es mas rapido.
-      const scale = Math.min(1, 640 / video.videoWidth);
-      const width = Math.round(video.videoWidth * scale);
-      const height = Math.round(video.videoHeight * scale);
+      // Se alterna entre el cuadro completo (reducido, mas rapido) y el centro
+      // ampliado, que es donde esta el recuadro guia: asi tambien se leen
+      // codigos que estan lejos de la camara.
+      frameRef.current += 1;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const crop = frameRef.current % 2 === 0 ? 0.6 : 1;
+      const sw = vw * crop;
+      const sh = vh * crop;
+      const scale = Math.min(1.5, 640 / sw);
+      const width = Math.round(sw * scale);
+      const height = Math.round(sh * scale);
       canvas.width = width;
       canvas.height = height;
-      canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0, width, height);
+      canvas.getContext('2d', { willReadFrequently: true })
+        .drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, width, height);
       const code = decodeCanvas(canvas, width, height);
       if (!code) return;
 

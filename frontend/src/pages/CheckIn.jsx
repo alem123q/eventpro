@@ -128,7 +128,7 @@ export default function CheckIn() {
       } else {
         setMessage({
           type: 'error',
-          text: 'No se encontró un código QR en la foto. Probá de nuevo con el código más cerca y enfocado.',
+          text: 'No se encontró un código QR en la foto. Probá de nuevo con el código más cerca (que ocupe buena parte de la foto), enfocado y sin reflejos.',
         });
       }
     } catch {
