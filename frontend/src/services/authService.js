@@ -36,4 +36,12 @@ export const authService = {
   resetPassword(token, password, password_confirm) {
     return api.post('/auth/reset-password/', { token, password, password_confirm });
   },
+
+  verifyEmail(token) {
+    return api.post('/auth/verify-email/', { token });
+  },
+
+  resendVerification(email) {
+    return api.post('/auth/resend-verification/', { email });
+  },
 };
