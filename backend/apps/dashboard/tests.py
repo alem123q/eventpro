@@ -62,3 +62,42 @@ class DashboardStatsTests(TestCase):
         Event.objects.create(title='Ajeno', event_date='2026-12-01', organizer=other)
 
         self.assertEqual(self.client.get(self.url).data['total_events'], 0)
+
+    def test_attendance_rate_never_exceeds_100(self):
+        # Caso real: un invitado ingreso y despues quedo como pendiente
+        from attendance.models import Attendance
+        event = Event.objects.create(
+            title='A', event_date='2026-12-01', organizer=self.user, status='active',
+        )
+        confirmado = Invitation.objects.create(
+            first_name='C', last_name='X', email='c@test.com',
+            event=event, rsvp_status='confirmed',
+        )
+        pendiente = Invitation.objects.create(
+            first_name='P', last_name='X', email='p@test.com',
+            event=event, rsvp_status='confirmed',
+        )
+        Attendance.objects.create(invitation=confirmado, event=event)
+        Attendance.objects.create(invitation=pendiente, event=event)
+        Invitation.objects.filter(id=pendiente.id).update(rsvp_status='pending')
+
+        data = self.client.get(self.url).data
+
+        self.assertEqual(data['attendance_rate'], 100.0)
+        self.assertEqual(data['expected_guests'], 2)
+
+    def test_attendance_rate_partial(self):
+        from attendance.models import Attendance
+        event = Event.objects.create(
+            title='A', event_date='2026-12-01', organizer=self.user, status='active',
+        )
+        invs = [
+            Invitation.objects.create(
+                first_name=f'G{i}', last_name='X', email=f'g{i}@test.com',
+                event=event, rsvp_status='confirmed',
+            )
+            for i in range(4)
+        ]
+        Attendance.objects.create(invitation=invs[0], event=event)
+
+        self.assertEqual(self.client.get(self.url).data['attendance_rate'], 25.0)

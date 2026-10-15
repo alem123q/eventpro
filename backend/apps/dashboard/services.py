@@ -50,10 +50,17 @@ class DashboardService:
         attendances_qs = Attendance.objects.filter(event_id__in=event_ids)
         total_attendances = attendances_qs.count()
 
+        # Tasa = ingresaron / esperados. Un invitado que ingreso cuenta como
+        # esperado aunque su RSVP no figure confirmado (datos viejos), asi la
+        # tasa nunca supera el 100 %.
+        expected_guests = invitations_qs.filter(
+            Q(rsvp_status=Invitation.RSVPStatus.CONFIRMED) | Q(attendance__isnull=False),
+        ).distinct().count()
+
         attendance_rate = 0
-        if confirmed_guests > 0:
+        if expected_guests > 0:
             attendance_rate = round(
-                (total_attendances / confirmed_guests) * 100, 1,
+                min(total_attendances / expected_guests, 1) * 100, 1,
             )
 
         events_by_category = dict(
@@ -96,6 +103,7 @@ class DashboardService:
             'rejected_guests': rejected_guests,
             'total_attendances': total_attendances,
             'attendance_rate': attendance_rate,
+            'expected_guests': expected_guests,
             'events_by_category': events_by_category,
             'events_by_month': events_by_month,
         }

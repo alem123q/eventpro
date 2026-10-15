@@ -54,24 +54,28 @@ export default function Dashboard() {
       <div className="dashboard-stats">
         <StatCard
           title="Total Eventos"
+          to="/events"
           value={stats.total_events}
           icon="📅"
           color="#4f46e5"
         />
         <StatCard
           title="Eventos Activos"
+          to="/events?status=active"
           value={stats.active_events}
           icon="✅"
           color="#22c55e"
         />
         <StatCard
           title="Finalizados"
+          to="/events?status=finished"
           value={stats.finished_events}
           icon="🏁"
           color="#6b7280"
         />
         <StatCard
           title="Borradores"
+          to="/events?status=draft"
           value={stats.draft_events}
           icon="📝"
           color="#f59e0b"
@@ -97,6 +101,7 @@ export default function Dashboard() {
         <StatCard
           title="Tasa Asistencia"
           value={stats.attendance_rate ? `${stats.attendance_rate}%` : '0%'}
+          hint={`${stats.total_attendances ?? 0} de ${stats.expected_guests ?? 0} ingresaron`}
           icon="📈"
           color="#8b5cf6"
         />
