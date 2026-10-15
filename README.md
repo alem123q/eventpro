@@ -14,7 +14,8 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 - **Roles:** administrador, organizador y colaborador.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
-- **Asistencia:** check-in de invitados con código QR único (se puede ver, descargar o imprimir) e historial de ingresos.
+- **Asistencia:** check-in de invitados con código QR único (se puede ver, descargar o imprimir), escaneándolo con la cámara —también desde el celular— o leyéndolo desde una foto, e historial de ingresos.
+- **Diseño adaptable:** la aplicación se puede usar desde el celular, con menú desplegable.
 - **Gastos:** registro de gastos por evento con categorías, presupuesto opcional y control de lo gastado contra lo presupuestado.
 - **Dashboard:** métricas generales de eventos, invitaciones y asistencia.
 - **Calendario:** vista de los eventos por fecha.
