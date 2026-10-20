@@ -125,3 +125,15 @@
     padding: var(--spacing-md);
   }
 }
+
+/* Aviso para quien colabora en el evento */
+.detail-collab-banner {
+  margin: 0 var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  color: #3730a3;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

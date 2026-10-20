@@ -28,4 +28,17 @@ export const eventService = {
   changeStatus(id, status) {
     return api.patch(`/events/${id}/status/`, { status });
   },
+
+  // Colaboradores del evento (solo el organizador los gestiona)
+  listCollaborators(id) {
+    return api.get(`/events/${id}/collaborators/`);
+  },
+
+  addCollaborator(id, email) {
+    return api.post(`/events/${id}/collaborators/`, { email });
+  },
+
+  removeCollaborator(id, userId) {
+    return api.delete(`/events/${id}/collaborators/${userId}/`);
+  },
 };

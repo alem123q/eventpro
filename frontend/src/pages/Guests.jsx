@@ -67,9 +67,17 @@ export default function Guests() {
 
   useEffect(() => {
     eventService.retrieve(id)
-      .then(({ data }) => { setEventTitle(data.title); setEventStatus(data.status); })
+      .then(({ data }) => {
+        // Los invitados los gestiona el organizador; el colaborador vuelve al evento
+        if (data.my_role === 'collaborator') {
+          navigate(`/events/${id}`, { replace: true });
+          return;
+        }
+        setEventTitle(data.title);
+        setEventStatus(data.status);
+      })
       .catch(() => setEventTitle(''));
-  }, [id]);
+  }, [id, navigate]);
 
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkData, setBulkData] = useState('');

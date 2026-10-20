@@ -1,37 +1,36 @@
 from rest_framework.permissions import BasePermission
 
+from events.access import can_work_door
 from events.models import Event
 
 
 class CanManageAttendance(BasePermission):
+    """Ver la asistencia: organizador, administrador o colaborador del evento."""
+
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        if request.user.role == 'admin':
-            return True
-        if request.user.role != 'organizer':
-            return False
-
         event_id = request.query_params.get('event')
         if event_id:
-            return Event.objects.filter(id=event_id, organizer=request.user).exists()
+            try:
+                event = Event.objects.get(id=event_id)
+            except (Event.DoesNotExist, ValueError):
+                return False
+            return can_work_door(request.user, event)
         return True
 
 
 class CanCheckin(BasePermission):
+    """Registrar ingresos: organizador, administrador o colaborador del evento."""
+
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in ('admin', 'organizer')
+        return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        if request.user.role == 'admin':
-            return True
-        if not hasattr(obj, 'organizer'):
-            return obj.event.organizer == request.user
-        return obj.organizer == request.user
+        event = obj if isinstance(obj, Event) else obj.event
+        return can_work_door(request.user, event)
 
 
 class IsEventOrganizer(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.user.role == 'admin':
-            return True
-        return obj.event.organizer == request.user
+        return can_work_door(request.user, obj.event)
