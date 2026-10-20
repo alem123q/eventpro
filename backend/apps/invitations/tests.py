@@ -288,3 +288,78 @@ class PublicInvitationTests(TestCase):
         codes = [self.client.get(self.url()).status_code for _ in range(31)]
 
         self.assertEqual(codes[-1], 429)
+
+
+class InvitationExportTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='org@test.com', username='org', password='Pass1234',
+        )
+        self.other = User.objects.create_user(
+            email='otro@test.com', username='otro', password='Pass1234',
+        )
+        self.event = Event.objects.create(
+            title='Asado de fin de año', event_date='2026-12-01', organizer=self.user,
+            status=Event.Status.ACTIVE,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def _sheet(self):
+        import io
+
+        from openpyxl import load_workbook
+        response = self.client.get(reverse('invitation-export'), {'event': self.event.id})
+        self.assertEqual(response.status_code, 200)
+        return response, load_workbook(io.BytesIO(response.content)).active
+
+    def test_export_guests_with_attendance(self):
+        import datetime
+        a = Invitation.objects.create(first_name='Sebastián', last_name='Palavecino', email='s@t.com',
+                                      phone='+54 9 3492 555555', event=self.event,
+                                      rsvp_status=Invitation.RSVPStatus.CONFIRMED)
+        Invitation.objects.create(first_name='Eloy', last_name='Kirov', email='e@t.com', event=self.event)
+        Attendance.objects.create(invitation=a, event=self.event, qr_code=a.qr_hash)
+
+        response, ws = self._sheet()
+
+        self.assertIn('invitados-asado-de-fin-de-ano-', response['Content-Disposition'])
+        self.assertEqual([c.value for c in ws[1]][:5], ['Nombre', 'Apellido', 'Email', 'Teléfono', 'Respuesta'])
+        self.assertEqual(ws.max_row, 3)
+        # Ordenados por apellido; acentos intactos; el telefono queda como texto
+        self.assertEqual([c.value for c in ws[2]][:5], ['Eloy', 'Kirov', 'e@t.com', None, 'Pendiente'])
+        self.assertEqual(ws['H2'].value, 'No')
+        self.assertIsNone(ws['I2'].value)
+        self.assertEqual([c.value for c in ws[3]][:5],
+                         ['Sebastián', 'Palavecino', 's@t.com', '+54 9 3492 555555', 'Confirmado'])
+        self.assertEqual(ws['H3'].value, 'Sí')
+        # La hora de ingreso es una fecha real, con la hora de Argentina
+        self.assertIsInstance(ws['I3'].value, datetime.datetime)
+        self.assertEqual(ws['I3'].number_format, 'DD/MM/YYYY HH:MM')
+        self.assertGreaterEqual(ws.column_dimensions['I'].width, 16)  # sin "####"
+
+    def test_export_marks_sent_and_guest_response(self):
+        import datetime
+        cache.clear()
+        inv = Invitation.objects.create(first_name='Eloy', last_name='Kirov', email='e@t.com', event=self.event)
+        self.client.post(reverse('invitation-send', args=[inv.id]))
+        APIClient().post(reverse('public:public-invitation-rsvp', args=[inv.qr_hash]),
+                         {'rsvp_status': 'rejected'}, format='json')
+
+        _, ws = self._sheet()
+
+        self.assertEqual(ws['E2'].value, 'Rechazado')
+        self.assertEqual(ws['F2'].value, 'Sí')
+        self.assertIsInstance(ws['G2'].value, datetime.datetime)
+
+    def test_other_organizer_cannot_export(self):
+        client = APIClient()
+        client.force_authenticate(self.other)
+
+        response = client.get(reverse('invitation-export'), {'event': self.event.id})
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_unknown_event_returns_404(self):
+        response = self.client.get(reverse('invitation-export'), {'event': 99999})
+        self.assertEqual(response.status_code, 404)

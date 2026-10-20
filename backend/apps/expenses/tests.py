@@ -221,3 +221,96 @@ class EventBudgetTests(TestCase):
             'title': 'X', 'event_date': '2026-12-01', 'budget': '-1',
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ExpenseExportTests(TestCase):
+    def setUp(self):
+        self.organizer = make_user(1)
+        self.other = make_user(2)
+        self.client = APIClient()
+        self.client.force_authenticate(self.organizer)
+        self.event = Event.objects.create(
+            title='Asado de fin de año', event_date='2026-12-01',
+            organizer=self.organizer, budget=Decimal('10000'),
+        )
+        Expense.objects.create(event=self.event, concept='Carne', category='catering',
+                               amount=Decimal('4500.5'), paid_by='Eloy', expense_date='2026-11-20')
+        Expense.objects.create(event=self.event, concept='Parlante', category='sound_lighting',
+                               amount=Decimal('1200'), expense_date='2026-11-10')
+
+    def _sheet(self):
+        import io
+
+        from openpyxl import load_workbook
+        response = self.client.get(reverse('expense-export'), {'event': self.event.id})
+        self.assertEqual(response.status_code, 200)
+        return response, load_workbook(io.BytesIO(response.content)).active
+
+    def test_export_expenses_to_excel(self):
+        import datetime
+        response, ws = self._sheet()
+
+        self.assertIn('spreadsheetml', response['Content-Type'])
+        self.assertIn('gastos-asado-de-fin-de-ano-', response['Content-Disposition'])
+        self.assertTrue(response['Content-Disposition'].rstrip('"').endswith('.xlsx'))
+        self.assertEqual([c.value for c in ws[1]], ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas'])
+        # Ordenados por fecha; la fecha es una fecha real y el monto un numero con formato moneda
+        self.assertEqual(ws['A2'].value, datetime.datetime(2026, 11, 10))
+        self.assertEqual(ws['A2'].number_format, 'DD/MM/YYYY')
+        self.assertEqual(ws['C2'].value, 'Sonido e iluminación')
+        self.assertEqual(ws['E3'].value, 4500.5)
+        self.assertEqual(ws['E3'].number_format, '"$" #,##0.00')
+        self.assertEqual(ws.freeze_panes, 'A2')
+        self.assertEqual(ws.auto_filter.ref, 'A1:F3')
+
+    def test_totals_are_formulas(self):
+        _, ws = self._sheet()
+
+        # Fila 4 vacia; luego total, presupuesto y disponible
+        self.assertIsNone(ws['B4'].value)
+        self.assertEqual(ws['B5'].value, 'Total gastado')
+        self.assertEqual(ws['E5'].value, '=SUM(E2:E3)')
+        self.assertTrue(ws['B5'].font.bold)
+        self.assertEqual(ws['E6'].value, 10000)
+        self.assertEqual(ws['E7'].value, '=E6-E5')
+        self.assertEqual(ws['E7'].number_format, '"$" #,##0.00')
+
+    def test_columns_are_wide_enough(self):
+        _, ws = self._sheet()
+
+        self.assertGreaterEqual(ws.column_dimensions['A'].width, 10)
+        self.assertGreaterEqual(ws.column_dimensions['C'].width, len('Sonido e iluminación'))
+
+    def test_export_without_budget_has_no_budget_rows(self):
+        self.event.budget = None
+        self.event.save()
+
+        _, ws = self._sheet()
+
+        self.assertNotIn('Presupuesto', [c.value for c in ws['B']])
+
+    def test_export_without_expenses(self):
+        Expense.objects.all().delete()
+
+        _, ws = self._sheet()
+
+        self.assertEqual(ws['B3'].value, 'Total gastado')
+        self.assertEqual(ws['E3'].value, 0)
+
+    def test_formula_like_text_is_saved_as_text(self):
+        Expense.objects.create(event=self.event, concept='=HYPERLINK("http://x")', amount=Decimal('1'),
+                               expense_date='2026-11-30')
+
+        _, ws = self._sheet()
+
+        cell = ws['B4']
+        self.assertEqual(cell.value, '=HYPERLINK("http://x")')
+        self.assertEqual(cell.data_type, 's')
+
+    def test_other_organizer_cannot_export(self):
+        client = APIClient()
+        client.force_authenticate(self.other)
+
+        response = client.get(reverse('expense-export'), {'event': self.event.id})
+
+        self.assertEqual(response.status_code, 403)

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db.models import Count, Sum
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
+from config import excel_export
 from events.models import Event
 
 from .models import Expense
@@ -83,3 +84,42 @@ class ExpenseService:
             'count': expenses.count(),
             'by_category': by_category,
         }
+
+
+class ExpenseExportService:
+    HEADER = ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas']
+    AMOUNT_COL = 'E'
+
+    @staticmethod
+    def expenses_xlsx(event):
+        F = excel_export.Formula
+        labels = dict(Expense.Category.choices)
+        report = excel_export.Report(
+            'Gastos', ExpenseExportService.HEADER,
+            formats={0: excel_export.DATE, 4: excel_export.MONEY},
+        )
+        expenses = Expense.objects.filter(event=event).order_by('expense_date', 'created_at')
+        for e in expenses:
+            report.add_row([
+                e.expense_date,
+                e.concept,
+                labels.get(e.category, e.category),
+                e.paid_by or None,
+                e.amount,
+                e.notes or None,
+            ])
+        last = report.last_row
+        report.add_filter(last)
+
+        # Totales con formulas: si se agrega un gasto a mano, se recalculan
+        col = ExpenseExportService.AMOUNT_COL
+        report.add_row([])
+        total = F(f'=SUM({col}2:{col}{last})') if last >= 2 else 0
+        total_row = report.add_row([None, 'Total gastado', None, None, total, None], bold=True)
+        if event.budget is not None:
+            budget_row = report.add_row([None, 'Presupuesto', None, None, event.budget, None], bold=True)
+            report.add_row(
+                [None, 'Disponible', None, None, F(f'={col}{budget_row}-{col}{total_row}'), None],
+                bold=True,
+            )
+        return report.response(excel_export.filename_for('gastos', event.title))

@@ -18,6 +18,7 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 - **Asistencia:** check-in de invitados con código QR único (se puede ver, descargar o imprimir), escaneándolo con la cámara —también desde el celular— o leyéndolo desde una foto, e historial de ingresos.
 - **Diseño adaptable:** la aplicación se puede usar desde el celular, con menú desplegable.
 - **Gastos:** registro de gastos por evento con categorías, presupuesto opcional y control de lo gastado contra lo presupuestado.
+- **Reportes:** descarga de invitados y asistencia, y de gastos, en archivos de Excel (.xlsx) con formato de moneda y fechas.
 - **Dashboard:** métricas generales de eventos, invitaciones y asistencia.
 - **Calendario:** vista de los eventos por fecha.
 
@@ -60,10 +61,10 @@ Cada app del backend separa la lógica de negocio (`services.py`) de las vistas,
 | Autenticación | `/api/auth/` (register, login, logout, refresh, verify-email, resend-verification, forgot-password, reset-password…) |
 | Usuarios | `/api/users/` |
 | Eventos | `/api/events/` |
-| Invitaciones | `/api/invitations/` (y `send/` para enviarlas por correo) |
+| Invitaciones | `/api/invitations/` (`send/` para enviarlas por correo, `export/?event=<id>` para el Excel) |
 | Invitación pública | `/api/public/invitations/<código>/` (sin autenticación) |
 | Asistencia | `/api/attendance/` |
-| Gastos | `/api/expenses/` (y `/api/expenses/summary/?event=<id>`) |
+| Gastos | `/api/expenses/` (`summary/?event=<id>` y `export/?event=<id>` para el Excel) |
 | Estadísticas | `/api/dashboard/stats/` |
 
 ## Cómo ejecutarlo

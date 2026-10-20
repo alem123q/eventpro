@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
+from config import excel_export
 from events.models import Event
 
 from .emails import send_invitation_email
@@ -131,6 +132,41 @@ class InvitationService:
             else:
                 failed += 1
         return {'sent': sent, 'failed': failed}
+
+
+class InvitationExportService:
+    HEADER = [
+        'Nombre', 'Apellido', 'Email', 'Teléfono', 'Respuesta',
+        'Respondió el invitado', 'Invitación enviada', 'Ingresó', 'Hora de ingreso',
+    ]
+
+    @staticmethod
+    def guests_xlsx(event):
+        labels = dict(Invitation.RSVPStatus.choices)
+        report = excel_export.Report(
+            'Invitados', InvitationExportService.HEADER,
+            formats={6: excel_export.DATETIME, 8: excel_export.DATETIME},
+        )
+        invitations = (
+            event.invitations.select_related('attendance')
+            .order_by('last_name', 'first_name')
+        )
+        for inv in invitations:
+            # Sin ingreso, Django lanza un error que hereda de AttributeError
+            attendance = getattr(inv, 'attendance', None)
+            report.add_row([
+                inv.first_name,
+                inv.last_name,
+                inv.email,
+                inv.phone or None,
+                labels.get(inv.rsvp_status, inv.rsvp_status),
+                excel_export.yes_no(inv.responded_at),
+                excel_export.local_naive(inv.invited_at),
+                excel_export.yes_no(attendance),
+                excel_export.local_naive(attendance.checkin_time) if attendance else None,
+            ])
+        report.add_filter(report.last_row)
+        return report.response(excel_export.filename_for('invitados', event.title))
 
 
 class PublicInvitationService:

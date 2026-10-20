@@ -8,7 +8,7 @@ from config.pagination import DefaultPagination
 from .models import Expense
 from .permissions import CanManageExpenses
 from .serializers import ExpenseSerializer
-from .services import ExpenseService
+from .services import ExpenseExportService, ExpenseService
 
 
 @api_view(['GET', 'POST'])
@@ -61,3 +61,11 @@ def expense_categories(request):
     return Response([
         {'value': value, 'label': label} for value, label in Expense.Category.choices
     ])
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated & CanManageExpenses])
+def expense_export(request):
+    """Descarga en Excel los gastos del evento, con el total y el presupuesto."""
+    event = ExpenseService.get_event(request.query_params.get('event'), request.user)
+    return ExpenseExportService.expenses_xlsx(event)

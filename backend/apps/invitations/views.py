@@ -11,7 +11,7 @@ from events.models import Event
 from .models import Invitation
 from .permissions import CanManageGuests, IsEventOrganizer
 from .serializers import InvitationSerializer, PublicInvitationSerializer
-from .services import InvitationService, PublicInvitationService
+from .services import InvitationExportService, InvitationService, PublicInvitationService
 
 
 @api_view(['GET', 'POST'])
@@ -146,6 +146,20 @@ def invitation_send_pending(request):
         raise PermissionDenied('No tienes permiso para gestionar invitados de este evento.')
     result = InvitationService.send_pending_invitations(event)
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated & CanManageGuests])
+def invitation_export(request):
+    """Descarga en Excel los invitados del evento, con su respuesta y su ingreso."""
+    event_id = request.query_params.get('event')
+    try:
+        event = Event.objects.select_related('organizer').get(id=event_id)
+    except (Event.DoesNotExist, ValueError, TypeError):
+        raise NotFound('Evento no encontrado.')
+    if not (request.user.role == 'admin' or event.organizer == request.user):
+        raise PermissionDenied('No tienes permiso para descargar los invitados de este evento.')
+    return InvitationExportService.guests_xlsx(event)
 
 
 # ----------------------------------------------------------------------

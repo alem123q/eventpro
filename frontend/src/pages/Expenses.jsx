@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { expenseService } from '../services/expenseService';
 import Loading from '../components/Loading';
+import DownloadButton from '../components/DownloadButton';
 import { apiErrorMessage, formatMoney, parseEventDate } from '../utils/format';
 import './Expenses.css';
 
@@ -221,9 +222,16 @@ export default function Expenses() {
             {summary?.event_title} · {summary?.count ?? 0} {summary?.count === 1 ? 'gasto' : 'gastos'}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          + Agregar gasto
-        </button>
+        <div className="expenses-header-actions">
+          <DownloadButton
+            url="/expenses/export/"
+            params={{ event: id }}
+            fallbackName="gastos.xlsx"
+          />
+          <button className="btn btn-primary" onClick={openCreate}>
+            + Agregar gasto
+          </button>
+        </div>
       </div>
 
       {error && <div className="expenses-error">{error}</div>}

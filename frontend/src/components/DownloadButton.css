@@ -1,0 +1,10 @@
+.download-file {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.download-file-error {
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
