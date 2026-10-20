@@ -83,13 +83,14 @@ let figN = 0, tabN = 0;
 // estas listas, asi agregar una figura no obliga a renumerar el texto.
 const FIGS = [
   'arquitectura', 'modelo', 'login', 'verificacion', 'dashboard', 'eventos', 'detalle',
-  'invitados', 'qr', 'checkin', 'escaner', 'gastos', 'gastosExcedido', 'calendario',
-  'celular', 'maqueta', 'flujoCheckin', 'repetido', 'otroEvento', 'noConfirmado',
-  'gastosValidacion', 'fotoPantalla',
+  'invitados', 'qr', 'invitacionMail', 'invitacionPublica', 'checkin', 'escaner', 'gastos',
+  'gastosExcedido', 'reportesExcel', 'calendario', 'colaboradoresOrganizador',
+  'colaboradorCelular', 'celular', 'maqueta', 'flujoCheckin', 'repetido', 'otroEvento',
+  'noConfirmado', 'gastosValidacion', 'fotoPantalla',
 ];
 const TABS = [
   'tecnologias', 'api', 'comparacion', 'historial', 'errores', 'fotos', 'problemas',
-  'pruebasApi', 'manualCheckin', 'manualCelular', 'servicios', 'futuro',
+  'pruebasApi', 'manualCheckin', 'manualCelular', 'manualInvitaciones', 'servicios', 'futuro',
 ];
 const num = (list, k, what) => { const i = list.indexOf(k); if (i < 0) throw new Error(`${what} desconocida: ${k}`); return i + 1; };
 const nF = (k) => num(FIGS, k, 'Figura');
@@ -184,7 +185,7 @@ const portada = [
   center('Ingeniería en Computación, Universidad Nacional de Rafaela'),
   center('Programación'),
   center('Javier Fornari'),
-  center('15 de octubre de 2026'),
+  center('20 de octubre de 2026'),
 ];
 
 // ---------- Indice (se completa en la segunda pasada) ----------
@@ -196,7 +197,7 @@ function tocEntry(text, level) { TOC.push({ text, level }); return text; }
 // =====================================================================
 add(H1(tocEntry('Introducción', 1)));
 add(P('Organizar un evento —una conferencia, un taller, una reunión de egresados— implica coordinar tareas que suelen quedar repartidas en planillas, chats y listas en papel: armar la lista de invitados, saber quién confirmó, controlar quién ingresó el día del evento y llevar la cuenta de lo que se gastó. Cuando esa información está dispersa, es difícil saber en qué estado está el evento y se cometen errores, como dejar entrar a alguien sin invitación o pasarse del presupuesto sin notarlo.'));
-add(P('**EventPro** es una aplicación web que reúne todo ese ciclo en un solo lugar. Un organizador crea sus eventos, carga a los invitados, registra sus confirmaciones, les entrega un código QR único y, el día del evento, registra el ingreso de cada uno escaneando ese código con la cámara del celular. Además, puede cargar los gastos del evento y compararlos con un presupuesto. Un panel de control resume la actividad de todos sus eventos.'));
+add(P('**EventPro** es una aplicación web que reúne todo ese ciclo en un solo lugar. Un organizador crea sus eventos y carga a los invitados; cada invitado recibe por correo su código QR y confirma su asistencia desde un enlace. El día del evento, el organizador —o las personas que lo ayudan en la puerta— registra el ingreso de cada uno escaneando ese código con la cámara del celular. Además, puede cargar los gastos del evento, compararlos con un presupuesto y descargar reportes en Excel. Un panel de control resume la actividad de todos sus eventos.'));
 add(H2(tocEntry('Objetivo general', 2)));
 add(P('Desarrollar una aplicación web completa —interfaz, API y base de datos— que permita gestionar eventos de punta a punta, ejecutable de forma reproducible mediante contenedores Docker.'));
 add(H2(tocEntry('Objetivos específicos', 2)));
@@ -204,10 +205,12 @@ add(bullet('Implementar una API REST con autenticación por tokens y permisos po
 add(bullet('Construir una interfaz web conectada a esa API para gestionar eventos, invitados, asistencia y gastos.'));
 add(bullet('Implementar un control de ingreso mediante códigos QR únicos e imposibles de adivinar, que se puedan escanear con la cámara.'));
 add(bullet('Incorporar un módulo de gastos con presupuesto por evento.'));
-add(bullet('Permitir el uso de la aplicación desde el celular, con un diseño que se adapte a pantallas chicas.'));
+add(bullet('Enviar las invitaciones por correo y permitir que cada invitado confirme o rechace su asistencia sin crear una cuenta.'));
+add(bullet('Permitir el uso de la aplicación desde el celular, con un diseño que se adapte a pantallas chicas, y sumar colaboradores que hagan el check-in sin acceso al resto de los datos.'));
+add(bullet('Generar reportes en Excel de la asistencia y de los gastos.'));
 add(bullet('Verificar el funcionamiento con pruebas automatizadas, pruebas en el navegador y pruebas manuales del grupo, y documentar los errores encontrados y cómo se corrigieron.'));
 add(H2(tocEntry('Alcance', 2)));
-add(P('La aplicación está pensada para que cada organizador administre sus propios eventos. Quedan fuera del alcance de esta versión los pagos en línea, el envío real de correos electrónicos (en desarrollo los correos se muestran en la consola del servidor) y la publicación de la aplicación en internet. Estas y otras mejoras se detallan en la sección Funciones a futuro.'));
+add(P('La aplicación está pensada para que cada organizador administre sus propios eventos. Quedan fuera del alcance de esta versión los pagos en línea, el envío real de correos electrónicos (en desarrollo los correos, con todo su contenido, se muestran en la consola del servidor) y la publicación de la aplicación en internet. Estas y otras mejoras se detallan en la sección Funciones a futuro.'));
 
 // =====================================================================
 // 2. Tecnologias y arquitectura
@@ -223,7 +226,8 @@ add(table('tecnologias', 'Tecnologías utilizadas en el proyecto',
     ['Base de datos', 'SQLite', 'Almacenamiento de datos en un archivo; suficiente para el alcance del proyecto.'],
     ['Frontend', 'React 19, React Router, Vite 8', 'Interfaz de usuario, navegación y servidor de desarrollo (Meta Open Source, s. f.; Vite, s. f.).'],
     ['Cliente HTTP', 'Axios', 'Envío de pedidos a la API con el token y renovación automática al vencer.'],
-    ['Códigos QR', 'qrcode y jsQR (npm)', 'Generación de la imagen QR de cada invitación y lectura de códigos desde la cámara o una foto (Cozmo, s. f.).'],
+    ['Códigos QR', 'qrcode y jsQR (npm); qrcode (Python)', 'Imagen QR en la aplicación y en el correo de invitación; lectura de códigos desde la cámara o una foto (Cozmo, s. f.).'],
+    ['Reportes', 'openpyxl', 'Archivos de Excel con formato de moneda, fechas, filtros y fórmulas (openpyxl, s. f.).'],
     ['HTTPS en desarrollo', '@vitejs/plugin-basic-ssl', 'Certificado autofirmado para que el navegador del celular permita usar la cámara.'],
     ['Infraestructura', 'Docker, Docker Compose', 'Ejecución de backend y frontend en contenedores con un solo comando.'],
     ['Pruebas', 'Django TestCase, Playwright', 'Pruebas automatizadas de la API y pruebas de punta a punta en el navegador (Microsoft, s. f.).'],
@@ -232,19 +236,20 @@ add(table('tecnologias', 'Tecnologías utilizadas en el proyecto',
 add(H2(tocEntry('Arquitectura de la aplicación', 2)));
 add(P('La ' + F('arquitectura') + ' muestra los componentes y cómo viaja un pedido. El usuario interactúa con las páginas de React desde el navegador de la computadora o del celular; cada página usa un módulo de `services/` que envía el pedido con el token JWT en el encabezado `Authorization`. El pedido llega al servidor de Vite por HTTPS, que lo reenvía a la API (función de *proxy*). Así el navegador se comunica con una sola dirección, lo que permite entrar desde otro dispositivo de la red sin configurar nada más. En el backend, Django REST Framework valida el pedido, verifica los permisos y delega la lógica en las aplicaciones de dominio, que leen y escriben en la base de datos.'));
 add(figure('arquitectura', 'arquitectura.png', 'Arquitectura de EventPro y flujo de un pedido', 'Cada recuadro de color dentro de «docker compose» es un contenedor. El navegador solo se comunica con el puerto 5173; el servidor de Vite reenvía las rutas /api y /media al backend.', 470, 520));
-add(P('El backend está organizado en seis aplicaciones de Django, una por dominio: `users` (cuentas, roles y autenticación), `events` (eventos y sus estados), `invitations` (invitados y confirmaciones), `attendance` (check-in e historial), `expenses` (gastos y presupuesto) y `dashboard` (estadísticas). Cada una separa responsabilidades en archivos: `models.py` define los datos, `serializers.py` valida la entrada y da forma a la salida, `permissions.py` define quién puede hacer qué, `services.py` concentra la lógica de negocio y `views.py` solo coordina. Esta separación hizo posible agregar el módulo de gastos sin modificar los demás.'));
+add(P('El backend está organizado en seis aplicaciones de Django, una por dominio: `users` (cuentas, roles y autenticación), `events` (eventos, sus estados y sus colaboradores), `invitations` (invitados, envío de invitaciones y página pública del invitado), `attendance` (check-in e historial), `expenses` (gastos y presupuesto) y `dashboard` (estadísticas). Cada una separa responsabilidades en archivos: `models.py` define los datos, `serializers.py` valida la entrada y da forma a la salida, `permissions.py` define quién puede hacer qué, `services.py` concentra la lógica de negocio y `views.py` solo coordina. Esta separación hizo posible agregar el módulo de gastos sin modificar los demás.'));
 
 add(H2(tocEntry('Modelo de datos', 2)));
-add(P('La ' + F('modelo') + ' presenta las entidades principales. Un usuario organiza muchos eventos; cada evento tiene muchos invitados y muchos gastos; cada invitación puede tener, como máximo, un registro de asistencia. En verde se marcan los campos y entidades incorporados durante este trabajo.'));
-add(figure('modelo', 'modelo.png', 'Modelo de datos de EventPro', 'PK = clave primaria; FK = clave foránea. La relación 1 : 0..1 entre invitación y asistencia impide registrar dos veces el ingreso de una misma persona.', 560, 520));
+add(P('La ' + F('modelo') + ' presenta las entidades principales. Un usuario organiza muchos eventos y puede colaborar en eventos de otros; cada evento tiene muchos invitados, muchos gastos y muchos colaboradores; cada invitación puede tener, como máximo, un registro de asistencia. En verde se marcan los campos y entidades incorporados durante este trabajo.'));
+add(figure('modelo', 'modelo.png', 'Modelo de datos de EventPro', 'PK = clave primaria; FK = clave foránea. La relación 1 : 0..1 entre invitación y asistencia impide registrar dos veces el ingreso de una misma persona. *El rol global «collaborator» quedó en desuso: los colaboradores se asignan por evento.', 560, 500));
 add(P('Además de las relaciones, el modelo impone reglas que la base de datos y la API hacen cumplir:'));
 add(bullet('Un mismo correo no puede estar invitado dos veces al mismo evento (restricción única sobre evento y correo).'));
 add(bullet('Un evento avanza en un solo sentido: borrador → activo → finalizado. Solo un evento activo admite check-in.'));
 add(bullet('El código QR de cada invitación es aleatorio y único, y no se puede modificar desde la API.'));
 add(bullet('El monto de un gasto debe ser mayor a cero y el presupuesto no puede ser negativo.'));
+add(bullet('Una persona no puede ser colaboradora dos veces del mismo evento, ni colaboradora de un evento que organiza.'));
 
 add(H2(tocEntry('API REST', 2)));
-add(P('La ' + T('api') + ' resume los recursos de la API. Todas las rutas, excepto las de registro, inicio de sesión, verificación de correo y recuperación de contraseña, requieren un token válido, y cada organizador solo puede ver y modificar los datos de sus propios eventos.'));
+add(P('La ' + T('api') + ' resume los recursos de la API. Todas las rutas, excepto las de registro, inicio de sesión, verificación de correo, recuperación de contraseña y la página pública del invitado, requieren un token válido. Cada organizador solo puede ver y modificar los datos de sus propios eventos; un colaborador solo puede ver los eventos donde colabora y registrar sus ingresos.'));
 add(table('api', 'Recursos principales de la API',
   ['Ruta', 'Métodos', 'Descripción'],
   [
@@ -252,12 +257,17 @@ add(table('api', 'Recursos principales de la API',
     ['`/api/users/profile/`', 'GET, PUT', 'Perfil del usuario autenticado.'],
     ['`/api/events/`', 'GET, POST, PUT, DELETE', 'Alta, consulta, edición y baja de eventos; filtros por estado, categoría y texto.'],
     ['`/api/events/<id>/status/`', 'PATCH', 'Cambio de estado según las transiciones permitidas.'],
+    ['`/api/events/<id>/collaborators/`', 'GET, POST, DELETE', 'Colaboradores del evento (solo el organizador).'],
     ['`/api/invitations/`', 'GET, POST, PUT, DELETE', 'Invitados por evento, incluida la carga masiva desde CSV.'],
     ['`/api/invitations/<id>/rsvp/`', 'PATCH', 'Cambio de la respuesta del invitado (pendiente, confirmado o rechazado).'],
+    ['`/api/invitations/send/`', 'POST', 'Envío por correo de las invitaciones pendientes (o de una, en `<id>/send/`).'],
+    ['`/api/invitations/export/`', 'GET', 'Excel de invitados y asistencia.'],
+    ['`/api/public/invitations/<código>/`', 'GET, POST', 'Página del invitado, sin autenticación: ver la invitación y responder.'],
     ['`/api/attendance/checkin/`', 'POST', 'Registro de ingreso a partir del código QR.'],
     ['`/api/attendance/`', 'GET', 'Historial de ingresos por evento.'],
     ['`/api/expenses/`', 'GET, POST, PATCH, DELETE', 'Gastos por evento.'],
     ['`/api/expenses/summary/`', 'GET', 'Total gastado, presupuesto, saldo y desglose por categoría de un evento.'],
+    ['`/api/expenses/export/`', 'GET', 'Excel de gastos con totales.'],
     ['`/api/dashboard/stats/`', 'GET', 'Estadísticas generales del organizador.'],
   ], [34, 20, 46]));
 
@@ -284,12 +294,19 @@ add(P('En el detalle del evento (' + F('detalle') + ') se accede a la gestión d
 add(figure('detalle', '06_detalle_evento.png', 'Detalle de un evento activo', null, MAX_IMG_W, 620));
 
 add(H2(tocEntry('Invitados y códigos QR', 2)));
-add(P('La pantalla de invitados (' + F('invitados') + ') permite agregarlos uno por uno o importarlos desde un archivo CSV, cambiar su respuesta (pendiente, confirmado o rechazado) y ver si ya ingresaron. Cada invitado tiene un botón para ver su código QR (' + F('qr') + '), que se puede copiar, descargar como imagen o imprimir para entregárselo. Si el invitado todavía no confirmó, la ventana avisa que el check-in no va a funcionar hasta que lo haga.'));
+add(P('La pantalla de invitados (' + F('invitados') + ') permite agregarlos uno por uno o importarlos desde un archivo CSV, cambiar su respuesta (pendiente, confirmado o rechazado), ver si se les envió la invitación y si ya ingresaron. Cada invitado tiene un botón para ver su código QR (' + F('qr') + '), que se puede copiar, descargar como imagen o imprimir para entregárselo. Si el invitado todavía no confirmó, la ventana avisa que el check-in no va a funcionar hasta que lo haga.'));
 add(figure('invitados', '07_invitados.png', 'Gestión de invitados de un evento'));
 add(figure('qr', '08_qr_invitado.png', 'Código QR de la invitación de un invitado', 'El código tiene 32 caracteres hexadecimales generados al azar por el servidor (128 bits), por lo que no puede deducirse a partir de otros datos.'));
 
+add(H2(tocEntry('Invitaciones por correo', 2)));
+add(P('Con el evento activo, el botón «Enviar invitaciones» manda un correo a cada invitado que todavía no lo recibió; un ícono en cada fila permite enviar o reenviar una sola. La columna Invitación muestra cuándo se envió la última, y debajo de la respuesta se indica si la eligió el propio invitado. El envío es manual y no automático al cargar a cada persona: así el organizador puede revisar la lista antes, y un error en un CSV no dispara correos.'));
+add(P('El correo (' + F('invitacionMail') + ') incluye los datos del evento, el código QR incrustado como imagen y dos botones que llevan a una página pública de EventPro, sin cuenta ni contraseña (' + F('invitacionPublica') + '). Allí el invitado confirma o rechaza su asistencia y puede cambiar de idea; al confirmar ve su QR y lo puede descargar. Si ya ingresó o el evento finalizó, la página lo informa y no deja cambiar la respuesta.'));
+add(P('El enlace usa el mismo código aleatorio de 128 bits que el QR, por lo que no se puede adivinar el de otra persona, y no da acceso a ningún otro dato del evento. Al abrir el enlace no se responde solo: hay que tocar un botón, porque algunos programas de correo abren los enlaces para revisarlos y eso podría confirmar a alguien sin que lo sepa.'));
+add(figure('invitacionMail', 'invitacion_mail.png', 'Correo de invitación', 'Vista del correo tal como lo genera el servidor. En desarrollo no se envía: se muestra en la consola, con el enlace aparte para copiarlo.', 380, 520));
+add(figure('invitacionPublica', 'invitacion_publica.png', 'Página del invitado en el celular', '(a) Al abrir el botón «Confirmo asistencia» del correo, la página resalta esa opción. (b) Después de confirmar: el QR para la entrada. (c) Otro invitado que rechazó; puede cambiar de idea.', 560, 420));
+
 add(H2(tocEntry('Check-in y asistencia', 2)));
-add(P('El día del evento, el organizador registra el ingreso de cada invitado de una de cuatro maneras: escaneando su código QR con la cámara, leyéndolo desde una foto, pegando el código en texto o con el botón «Registrar» junto a su nombre (' + F('checkin') + '). La pantalla separa a los invitados en tres grupos —por ingresar, sin confirmar y ya ingresaron— y muestra cuántos de los confirmados llegaron. Cada intento informa a quién se registró, o el motivo exacto si no se pudo. El historial de asistencia lista los ingresos con su fecha y hora.'));
+add(P('El día del evento, el organizador o sus colaboradores registran el ingreso de cada invitado de una de cuatro maneras: escaneando su código QR con la cámara, leyéndolo desde una foto, pegando el código en texto o con el botón «Registrar» junto a su nombre (' + F('checkin') + '). La pantalla separa a los invitados en tres grupos —por ingresar, sin confirmar y ya ingresaron— y muestra cuántos de los confirmados llegaron. Cada intento informa a quién se registró, o el motivo exacto si no se pudo. El historial de asistencia lista los ingresos con su fecha y hora.'));
 add(figure('checkin', '09_checkin_exito.png', 'Pantalla de check-in después de registrar un ingreso', null, MAX_IMG_W, 640));
 add(H3('Escaneo con cámara y lectura desde una foto'));
 add(P('El botón «Escanear con cámara» abre un escáner que muestra la imagen de la cámara con un recuadro guía (' + F('escaner') + '). En el celular se usa la cámara trasera y, si el dispositivo tiene varias, se puede cambiar de una a otra. El escáner analiza la imagen unas siete veces por segundo y, cuando encuentra un código, hace vibrar el teléfono, registra el ingreso y muestra el resultado sobre la imagen. Después de cada lectura el escáner sigue abierto, para registrar a varios invitados seguidos en la puerta del evento; el mismo código se ignora durante unos segundos para no registrarlo dos veces por error.'));
@@ -301,9 +318,19 @@ add(P('Cada evento tiene una página de gastos (' + F('gastos') + '). En la part
 add(figure('gastos', '14_gastos.png', 'Gastos de un evento dentro del presupuesto', null, MAX_IMG_W, 560));
 add(figure('gastosExcedido', '15_gastos_excedido.png', 'Gastos de un evento que superó su presupuesto'));
 
+add(H2(tocEntry('Reportes en Excel', 2)));
+add(P('Las pantallas de invitados, historial de asistencia y gastos tienen un botón «Descargar Excel» (' + F('reportesExcel') + '). El archivo lo arma el servidor con todos los registros del evento, no solo los de la página visible. Los montos tienen formato de moneda y siguen siendo números que se pueden sumar; las fechas son fechas reales para ordenar y filtrar; el encabezado queda fijo con filtros, y en gastos el total y el saldo disponible son fórmulas que se recalculan si se agrega un gasto a mano. Solo el organizador puede descargarlos, porque incluyen correos y teléfonos.'));
+add(figure('reportesExcel', 'reportes_excel.png', 'Reportes en Excel de un evento', '(a) Gastos, con el total, el presupuesto y lo disponible al final. (b) Invitados y asistencia. Vistos en una planilla configurada en español.', MAX_IMG_W, 300));
+
 add(H2(tocEntry('Calendario', 2)));
 add(P('El calendario (' + F('calendario') + ') muestra los eventos de cada mes en una grilla y permite navegar entre meses.'));
 add(figure('calendario', '16_calendario.png', 'Vista de calendario'));
+
+add(H2(tocEntry('Colaboradores en la puerta', 2)));
+add(P('En un evento grande, el organizador no puede registrar solo a todos los invitados. Desde el detalle del evento puede sumar colaboradores por su correo, siempre que tengan cuenta en EventPro, y quitarlos cuando quiera (' + F('colaboradoresOrganizador') + '). La persona agregada recibe un aviso por correo.'));
+add(P('El colaborador ve el evento en su lista con la etiqueta «Colaborador» y, al abrirlo, solo encuentra el check-in y el historial (' + F('colaboradorCelular') + '). No puede editar el evento ni cambiar su estado, gestionar invitados, ver gastos o el presupuesto, descargar reportes ni sumar a otros colaboradores. Al quitarlo, pierde el acceso en el momento.'));
+add(figure('colaboradoresOrganizador', 'colaboradores_organizador.png', 'Sección de colaboradores en el detalle del evento', null, MAX_IMG_W, 220));
+add(figure('colaboradorCelular', 'colaborador_celular.png', 'El evento visto por un colaborador en el celular', '(a) Lista de eventos con la etiqueta «Colaborador». (b) Detalle con solo el check-in y el historial. (c) Escaneo de un invitado en la puerta.', 560, 420));
 
 add(H2(tocEntry('Uso desde el celular', 2)));
 add(P('Como el control de ingreso se hace en la puerta del evento, la aplicación tiene que funcionar en el celular. Para eso se resolvieron dos cuestiones. La primera es el acceso: estando en la misma red WiFi que la computadora donde corre Docker, el celular entra con la dirección IP de esa computadora (por ejemplo, `https://192.168.0.15:5173`). Los navegadores solo permiten usar la cámara en páginas seguras —las que se abren por HTTPS o desde la propia computadora como `localhost`— (MDN Web Docs, s. f.), por lo que el servidor de desarrollo se configuró con HTTPS mediante un certificado autofirmado. La primera vez, el navegador muestra un aviso porque el certificado no fue emitido por una autoridad reconocida; basta con aceptarlo.'));
@@ -336,6 +363,7 @@ add(P('El código se versionó con Git en el repositorio `github.com/alem123q/ev
 add(bullet('`etapa-2`: rama de trabajo, donde se publican los cambios a medida que se desarrollan.'));
 add(bullet('`main`: versión estable. Los cambios de `etapa-2` se unen a `main` solo después de que el grupo los prueba y confirma que funcionan, de modo que `main` siempre sirve como punto de control al que se puede volver.'));
 add(P('Al inicio existía además una rama `desarrollo` para integrar cambios, que se eliminó al adoptar este esquema más simple de dos ramas.'));
+add(P('Las funcionalidades y sus pruebas manuales —85 en total, con los pasos y el resultado esperado de cada una— se reunieron en un plan de pruebas aparte, que el grupo usa para verificar la aplicación completa antes de cada entrega.'));
 add(P('Para la programación, la revisión de código y la preparación de pruebas se utilizó como asistente el modelo de lenguaje Claude (Anthropic, 2026). Las decisiones de diseño y la validación de cada cambio estuvieron a cargo del grupo, que probó cada funcionalidad antes de darla por terminada.'));
 
 add(H2(tocEntry('Historial de cambios', 2)));
@@ -358,7 +386,11 @@ add(table('historial', 'Historial de cambios del repositorio',
     ['15/10/2026', 'e0cc4c7', 'Acceso desde el celular: HTTPS, *proxy* hacia la API y diseño adaptable.'],
     ['15/10/2026', 'eb7e7af, 8553de1', 'Página de verificación de correo, estado en el perfil y enlaces legibles en la consola.'],
     ['15/10/2026', '603e814, 2495cbc', 'README actualizado con las funciones nuevas.'],
-  ], [15, 22, 63], 'Las uniones de `etapa-2` a `main` (4ba0e06 y dcd1906) no se listan porque no agregan cambios propios.'));
+    ['15/10/2026', 'aa56738', 'Segunda versión de este informe.'],
+    ['20/10/2026', 'd64208a', 'Invitaciones por correo con QR, página pública del invitado, límites de intentos y zona horaria de Argentina.'],
+    ['20/10/2026', '21055cd, 3410abd', 'Reportes de invitados, asistencia y gastos (primero en CSV, luego en Excel).'],
+    ['20/10/2026', 'af90b63', 'Colaboradores por evento para el check-in en la puerta.'],
+  ], [15, 22, 63], 'Las uniones de `etapa-2` a `main` (4ba0e06, dcd1906, b7b4c3c, 3c57774, 713114d y 82d377f) no se listan porque no agregan cambios propios.'));
 
 add(H2(tocEntry('Decisiones de diseño', 2)));
 add(P('Durante el desarrollo se tomaron las siguientes decisiones, cada una justificada por un problema concreto:'));
@@ -371,6 +403,10 @@ add(bullet('**HTTPS también en desarrollo.** Es la única forma de que el naveg
 add(bullet('**Una sola dirección para la aplicación y la API.** El servidor de Vite reenvía las rutas `/api` y `/media` al backend, por lo que la interfaz funciona igual desde la computadora o desde el celular sin configurar direcciones.'));
 add(bullet('**Los estados del evento forman una secuencia.** Solo se permiten las transiciones borrador → activo → finalizado; el check-in exige un evento activo.'));
 add(bullet('**El presupuesto es opcional.** Muchos eventos no lo tienen definido; en ese caso la página de gastos muestra solo el total.'));
+add(bullet('**Las invitaciones se envían con un botón.** Enviarlas solas al cargar a cada invitado haría que un error en un CSV llegara a la casilla de muchas personas.'));
+add(bullet('**El invitado responde sin cuenta y con un toque.** El enlace secreto alcanza para identificarlo, y abrirlo no responde por él: hay que tocar el botón.'));
+add(bullet('**Colaboradores por evento, no un rol global.** Quien ayuda en la puerta de un evento puede ser organizador de otros; asignarlo a cada evento limita su acceso a ese evento y a la tarea de la puerta.'));
+add(bullet('**Reportes en Excel y no en CSV.** Un CSV es texto plano: no guarda el ancho de las columnas ni el formato de moneda; un `.xlsx` sí, y sigue siendo un archivo que se abre en Excel, LibreOffice o Google Sheets.'));
 add(bullet('**Los mensajes de error de la API tienen un formato único** (`{"detail": "..."}`), para que la interfaz siempre pueda mostrar el motivo exacto.'));
 
 // =====================================================================
@@ -395,6 +431,10 @@ add(table('errores', 'Errores encontrados y corregidos',
     ['12', 'En el celular el menú tapaba media pantalla y las tablas ensanchaban la página.', 'El diseño no tenía en cuenta pantallas chicas.', 'Menú desplegable y tablas con desplazamiento propio.'],
     ['13', 'El enlace de verificación del correo llevaba a una página inexistente.', 'El backend generaba el enlace, pero el frontend no tenía esa página.', 'Página de verificación y estado en el perfil.'],
     ['14', 'Los enlaces de los correos aparecían cortados en la consola.', 'Los correos se imprimen con codificación *quoted-printable*.', 'Se imprime además el enlace limpio.'],
+    ['15', 'Los límites de intentos por minuto (inicio de sesión, registro) no se aplicaban.', 'La clase de DRF usada toma el límite de la vista, y las vistas no lo definían.', 'Clase propia con el límite fijo y pruebas que lo verifican.'],
+    ['16', 'Fechas y horas con la zona horaria de Chile.', 'Configuración heredada del proyecto original.', 'Zona horaria e idioma de Argentina.'],
+    ['17', 'En el reporte, los montos sin formato y las fechas como `####`.', 'El formato CSV no guarda ancho de columnas ni formatos.', 'Reportes en Excel (.xlsx).'],
+    ['18', 'Con la columna de invitación, la tabla de invitados no entraba en la pantalla.', 'Una columna más en una tabla ya ancha.', 'Email y teléfono en una sola columna; la fecha en dos renglones.'],
   ], [7, 33, 34, 26]));
 
 add(H2(tocEntry('Código QR predecible', 2)));
@@ -446,6 +486,14 @@ add(H2(tocEntry('Verificación del correo electrónico', 2)));
 add(P('El backend ya generaba un enlace de verificación al registrarse, pero apuntaba a una página `/verify-email` que no existía en la interfaz, por lo que la verificación no se podía completar. Se creó esa página y se agregó el estado de verificación al perfil (' + F('verificacion') + '). La página envía el código una sola vez aunque React la monte dos veces en modo de desarrollo, porque el código se borra al usarse y un segundo envío daría un error falso.'));
 add(P('Al probarlo apareció un problema adicional: en desarrollo, los correos se imprimen en la consola con la codificación *quoted-printable*, que corta las líneas largas y reemplaza el signo `=` por `=3D`. El enlace era casi imposible de copiar. Ahora, cuando los correos se muestran en la consola, el backend imprime además el enlace limpio en una línea aparte, tanto para la verificación como para la recuperación de contraseña.'));
 
+add(H2(tocEntry('Límites de intentos que no se aplicaban', 2)));
+add(P('El proyecto original limitaba los intentos de inicio de sesión a 10 por minuto, y los de registro, recuperación de contraseña y reenvío de verificación a 3, para dificultar que alguien pruebe contraseñas de forma automática. Al agregar el mismo límite a la página pública del invitado, una prueba automatizada mostró que no se aplicaba. Al revisarlo se encontró que tampoco funcionaba en el inicio de sesión: 13 intentos fallidos seguidos no recibían ningún bloqueo.'));
+add(P('La causa era la clase `ScopedRateThrottle` de Django REST Framework: toma el nombre del límite de la vista (`throttle_scope`) e ignora el que define la clase, y las vistas del proyecto no lo definían, por lo que el límite nunca se activaba. Se reemplazó por una clase propia con el límite fijo, que cuenta los intentos por usuario o, sin sesión, por dirección IP. Ahora el undécimo intento de inicio de sesión dentro de un minuto se rechaza, y dos pruebas nuevas lo verifican. El caso muestra que una protección configurada no es lo mismo que una protección comprobada.'));
+
+add(H2(tocEntry('Del CSV al Excel', 2)));
+add(P('La primera versión de los reportes generaba archivos CSV preparados para Excel en español: separador `;`, marca de UTF-8 para los acentos y coma decimal. Al probarlos, el grupo pidió dos cambios: el monto con formato de moneda y las fechas, que se veían como `####`. Las dos cosas tenían la misma causa: un CSV es texto plano y no puede guardar el ancho de una columna ni el formato de una celda.'));
+add(P('Se pasó a generar archivos `.xlsx` con la librería openpyxl (openpyxl, s. f.). Al hacerlo apareció un riesgo: openpyxl guarda como fórmula cualquier texto que empiece con `=`, de modo que un concepto de gasto escrito así se ejecutaría al abrir el archivo (inyección de fórmulas; OWASP Foundation, s. f.). Esos textos se guardan explícitamente como texto, y una prueba automatizada lo verifica.'));
+
 // =====================================================================
 // 6. Problemas durante el desarrollo
 // =====================================================================
@@ -464,6 +512,9 @@ add(table('problemas', 'Problemas del entorno y de las herramientas durante el d
     ['Permiso de cámara en Brave', 'El escáner informaba que no había permiso para usar la cámara.', 'Habilitar la cámara en la configuración del sitio del navegador.'],
     ['Probar la cámara de forma automática', 'Las pruebas en el navegador no tienen una cámara real.', 'Cámara simulada que reproduce un video generado con el código QR.'],
     ['Enlaces de correo ilegibles', 'Los enlaces de verificación aparecían cortados y con `=3D` en la consola.', 'El backend imprime además el enlace limpio.'],
+    ['Imagen del QR en el correo', 'Django 6 rechazó la forma habitual de incrustar imágenes en un correo (atributo `mixed_subtype`).', 'Se usó la forma nueva que indica Django 6 (`MIMEPart` con identificador de contenido).'],
+    ['Pruebas con dos usuarios', 'Los colaboradores necesitan dos cuentas usando la aplicación a la vez.', 'Prueba automatizada con un organizador en la computadora y un colaborador en un celular simulado.'],
+    ['Una regla vieja de permisos', 'El proyecto original daba acceso al evento a quien figuraba como invitado con rol «colaborador».', 'Se reemplazó por la asignación de colaboradores por evento y se actualizaron sus pruebas.'],
   ], [22, 39, 39]));
 add(P('De estos problemas surgieron algunas prácticas que se mantuvieron durante el resto del trabajo: escribir las instrucciones de prueba paso a paso indicando el resultado esperado, probar cada funcionalidad en el dispositivo en el que se va a usar (el celular, en el caso del escáner) y, ante un error, reproducirlo primero con los mismos datos antes de intentar corregirlo.'));
 
@@ -476,25 +527,25 @@ add(P('El backend cuenta con pruebas automatizadas escritas con las herramientas
 add(table('pruebasApi', 'Pruebas automatizadas por módulo',
   ['Módulo', 'Al inicio', 'Actual', 'Qué verifican las pruebas agregadas'],
   [
-    ['users', '46', '46', '—'],
-    ['events', '29', '29', '—'],
-    ['invitations', '0', '4', 'Códigos QR únicos, aleatorios y no modificables desde la API.'],
-    ['attendance', '38', '44', 'Códigos de otro evento, reingresos, formato de errores y bloqueo de cambios de RSVP.'],
+    ['users', '46', '48', 'Límites de intentos por minuto en el inicio de sesión y el registro.'],
+    ['events', '29', '40', 'Colaboradores: alta, validaciones, qué pueden y qué no, filtro por rol y pérdida del acceso al quitarlos.'],
+    ['invitations', '0', '26', 'Códigos QR aleatorios; envío de invitaciones; página pública (datos visibles, respuestas, evento finalizado, ingreso ya registrado, límite de pedidos); Excel de invitados.'],
+    ['attendance', '38', '46', 'Códigos de otro evento, reingresos, formato de errores, bloqueo de cambios de RSVP y permisos de colaboradores.'],
     ['dashboard', '0', '7', 'Autenticación, panel vacío, claves por mes, conteos y tasa de asistencia.'],
-    ['expenses', '0', '20', 'Alta, validaciones, permisos, edición, borrado, filtros, resumen y presupuesto.'],
-    ['**Total**', '**113**', '**150**', ''],
-  ], [17, 12, 12, 59], 'La verificación de correo ya tenía pruebas en el módulo `users`; los cambios de esta etapa fueron en la interfaz y se probaron en el navegador.'));
+    ['expenses', '0', '27', 'Alta, validaciones, permisos, edición, borrado, filtros, resumen, presupuesto y Excel de gastos (formatos, fórmulas, texto con «=»).'],
+    ['**Total**', '**113**', '**194**', ''],
+  ], [17, 12, 12, 59], 'Seis pruebas del proyecto original se reescribieron porque verificaban la regla anterior de colaboradores (acceso por figurar como invitado).'));
 add(P('Las pruebas se ejecutan con un solo comando. El resultado actual es el siguiente:'));
 add(code([
   '> docker compose exec backend python manage.py test',
-  'Found 150 test(s).',
+  'Found 194 test(s).',
   "Creating test database for alias 'default'...",
   'System check identified no issues (0 silenced).',
   '..........................................................................',
   '..........................................................................',
-  '..',
+  '..............................................',
   '----------------------------------------------------------------------',
-  'Ran 150 tests in 228.353s',
+  'Ran 194 tests in 333.793s',
   '',
   'OK',
   "Destroying test database for alias 'default'...",
@@ -512,10 +563,13 @@ add(bullet('Uso desde el celular: un Pixel 7 simulado entra por la IP de la comp
 add(bullet('Menú desplegable: se abre con ☰, se cierra al elegir una sección o al tocar fuera, y no aparece en la computadora.'));
 add(bullet('Verificación de correo: enlace válido, enlace reemplazado, enlace ya usado, página sin código y reenvío desde el perfil.'));
 add(bullet('Alta, edición y borrado de gastos, con y sin presupuesto, incluido el caso en que se supera el presupuesto.'));
+add(bullet('Invitaciones: envío a todos, reenvío a uno, lectura del enlace desde la consola, respuesta del invitado en un celular simulado (incluso con una sesión vencida guardada en el navegador), y luego el check-in con ese QR.'));
+add(bullet('Reportes: descarga de los tres Excel desde la computadora y desde el celular, y revisión de su contenido.'));
+add(bullet('Colaboradores con dos usuarios: el organizador agrega a otra persona desde la computadora; esa persona, desde un celular con cámara simulada, escanea un QR en la puerta; luego el organizador la quita y se verifica que perdió el acceso.'));
 add(P('En todos los escenarios se verificó, además del resultado, que no hubiera errores en la consola del navegador ni respuestas de error inesperadas de la API.'));
 
 add(H2(tocEntry('Pruebas manuales del grupo', 2)));
-add(P('Cada cambio fue probado también por el grupo, con la aplicación ejecutándose en Docker, siguiendo pasos definidos y comparando el resultado obtenido con el esperado. La ' + T('manualCheckin') + ' muestra la prueba del check-in en la computadora y la ' + T('manualCelular') + ', la del uso desde el celular.'));
+add(P('Cada cambio fue probado también por el grupo, con la aplicación ejecutándose en Docker, siguiendo pasos definidos y comparando el resultado obtenido con el esperado. Las Tablas ' + nT('manualCheckin') + ' a ' + nT('manualInvitaciones') + ' muestran, como ejemplo, la prueba del check-in en la computadora, la del uso desde el celular y la de las invitaciones por correo.'));
 add(table('manualCheckin', 'Prueba manual del check-in',
   ['Paso', 'Acción', 'Resultado esperado', 'Resultado'],
   [
@@ -537,6 +591,15 @@ add(table('manualCelular', 'Prueba manual del escáner y del uso desde el celula
     ['4', 'Leer el código desde una foto tomada muy de cerca.', 'Ingreso registrado.', 'Falló; corregido en 1b85fbc y verificado con la misma foto'],
     ['5', 'Navegar con el menú ☰ por todas las pantallas.', 'El contenido se ve completo y sin desplazamiento lateral.', 'Correcto'],
   ], [7, 37, 30, 26]));
+add(table('manualInvitaciones', 'Prueba manual de las invitaciones por correo',
+  ['Paso', 'Acción', 'Resultado esperado', 'Resultado'],
+  [
+    ['1', 'Activar un evento con invitados y tocar «Enviar invitaciones».', '«Se enviaron N invitaciones»; la columna Invitación pasa a «Enviada».', 'Correcto'],
+    ['2', 'Abrir en el celular el enlace de un invitado (copiado de la consola) y confirmar.', 'Aparece su código QR.', 'Correcto'],
+    ['3', 'Con otro invitado, tocar «No voy a poder ir».', 'Queda como rechazado, sin QR.', 'Correcto'],
+    ['4', 'Recargar Invitados en la computadora.', 'Las dos respuestas, con «por el invitado».', 'Correcto'],
+    ['5', 'Escanear en el check-in el QR del que confirmó y volver a abrir su enlace.', 'Ingreso registrado; la página dice «Ya ingresaste al evento».', 'Correcto'],
+  ], [7, 40, 37, 16]));
 
 // =====================================================================
 // 8. Ejecucion con Docker
@@ -548,7 +611,7 @@ add(code([
   'cd eventpro',
   'docker compose up --build',
 ]));
-add(P('Cuando se agregan librerías nuevas al frontend, hay que agregar la opción `-V` (`docker compose up --build -V`), porque Docker conserva la carpeta de dependencias anterior entre reinicios. Para acceder al panel de administración de Django se crea un usuario administrador con `docker compose exec backend python manage.py createsuperuser`. La ' + T('servicios') + ' resume las direcciones disponibles.'));
+add(P('Después de cada actualización del código conviene usar `--build`, que vuelve a armar los contenedores si cambiaron las librerías del backend. Cuando se agregan librerías nuevas al frontend, hay que agregar además la opción `-V` (`docker compose up --build -V`), porque Docker conserva la carpeta de dependencias anterior entre reinicios. Para acceder al panel de administración de Django se crea un usuario administrador con `docker compose exec backend python manage.py createsuperuser`. La ' + T('servicios') + ' resume las direcciones disponibles.'));
 add(table('servicios', 'Servicios disponibles al ejecutar el proyecto',
   ['Servicio', 'Dirección'],
   [
@@ -557,36 +620,39 @@ add(table('servicios', 'Servicios disponibles al ejecutar el proyecto',
     ['API', '`http://localhost:8000/api/`'],
     ['Panel de administración', '`http://localhost:8000/admin/`'],
   ], [50, 50]));
-add(P('La IP de la computadora se obtiene en Windows con el comando `ipconfig` (dato «Dirección IPv4»). La primera vez que se abre la aplicación en cada dispositivo, el navegador advierte que el certificado no es de confianza; hay que aceptar el aviso para continuar. Si el celular no logra conectarse, puede ser necesario permitir el acceso en el Firewall de Windows para redes privadas. En desarrollo los correos no se envían: se muestran en la consola del backend (`docker compose logs backend`), con los enlaces de verificación y de recuperación de contraseña en una línea aparte, listos para copiar.'));
+add(P('La IP de la computadora se obtiene en Windows con el comando `ipconfig` (dato «Dirección IPv4»). La primera vez que se abre la aplicación en cada dispositivo, el navegador advierte que el certificado no es de confianza; hay que aceptar el aviso para continuar. Si el celular no logra conectarse, puede ser necesario permitir el acceso en el Firewall de Windows para redes privadas. En desarrollo los correos no se envían: se muestran en la consola del backend (`docker compose logs backend`), con los enlaces de verificación, de recuperación de contraseña y de las invitaciones en una línea aparte, listos para copiar.'));
 add(P('Esta configuración está pensada para el desarrollo: usa los servidores de desarrollo de Django y Vite, que recargan los cambios automáticamente, y un certificado autofirmado. Para publicar la aplicación en internet habría que reemplazarlos por servidores de producción, un certificado emitido por una autoridad reconocida y la configuración sin modo de depuración, como se describe en la sección Funciones a futuro.'));
 
 // =====================================================================
 // 9. Conclusiones
 // =====================================================================
 add(H1(tocEntry('Conclusiones', 1)));
-add(P('Se desarrolló una aplicación web que cubre el ciclo completo de un evento: creación, invitados, confirmaciones, control de ingreso con códigos QR escaneados desde el celular, gastos con presupuesto y un panel con métricas. La aplicación se ejecuta con un solo comando gracias a Docker, se puede usar desde la computadora o desde el celular y cuenta con 150 pruebas automatizadas, todas aprobadas.'));
-add(P('Elegir como base la versión más completa, en lugar de la más vistosa, permitió concentrar el esfuerzo en corregir y ampliar algo que ya funcionaba. Las pruebas manuales del grupo resultaron decisivas: varios de los errores más importantes —los del check-in, la tasa de asistencia de 133,3 % o las fotos de la pantalla que no se leían— no se veían en las pruebas automatizadas y aparecieron al usar la aplicación como lo haría un organizador real. Probar en el dispositivo real también mostró que algunos problemas no están en el código sino en el entorno, como los permisos del navegador o la necesidad de HTTPS para usar la cámara.'));
+add(P('Se desarrolló una aplicación web que cubre el ciclo completo de un evento: creación, invitados, invitaciones por correo que el invitado responde sin cuenta, control de ingreso con códigos QR escaneados desde el celular —también por colaboradores—, gastos con presupuesto, reportes en Excel y un panel con métricas. La aplicación se ejecuta con un solo comando gracias a Docker, se puede usar desde la computadora o desde el celular y cuenta con 194 pruebas automatizadas, todas aprobadas.'));
+add(P('Elegir como base la versión más completa, en lugar de la más vistosa, permitió concentrar el esfuerzo en corregir y ampliar algo que ya funcionaba. Las pruebas manuales del grupo resultaron decisivas: varios de los errores más importantes —los del check-in, la tasa de asistencia de 133,3 % o las fotos de la pantalla que no se leían— no se veían en las pruebas automatizadas y aparecieron al usar la aplicación como lo haría un organizador real. Probar en el dispositivo real también mostró que algunos problemas no están en el código sino en el entorno, como los permisos del navegador o la necesidad de HTTPS para usar la cámara. Y una prueba automatizada nueva reveló que los límites de intentos del proyecto original nunca habían funcionado: una protección configurada no es lo mismo que una protección comprobada.'));
 add(P('Trabajar con dos ramas —una de trabajo y una estable que solo se actualiza después de probar— dio la tranquilidad de poder hacer cambios grandes, como el acceso desde el celular, sabiendo que siempre había una versión funcionando a la que volver.'));
 
 // =====================================================================
 // 10. Funciones a futuro
 // =====================================================================
 add(H1(tocEntry('Funciones a futuro', 1)));
-add(P('La ' + T('futuro') + ' reúne las funciones y mejoras que quedaron pendientes, ordenadas según su prioridad para que la aplicación pueda usarse en un evento real.'));
+add(P('La ' + T('futuro') + ' reúne las funciones y mejoras que quedaron pendientes. Las de prioridad alta son necesarias para usar la aplicación en un evento real; las demás amplían lo que ofrece. Varias de las que figuraban en la versión anterior de este informe —el envío del QR por correo, la confirmación por parte del invitado, los colaboradores y los reportes— ya se implementaron.'));
 add(table('futuro', 'Funciones y mejoras propuestas',
   ['Prioridad', 'Función', 'Descripción'],
   [
     ['Alta', 'Publicación en internet', 'Servidores de producción (por ejemplo, Gunicorn y Nginx), certificado HTTPS de una autoridad reconocida, modo de depuración desactivado y datos sensibles en variables de entorno.'],
-    ['Alta', 'Envío real de correos', 'Configurar un servicio de correo para que lleguen los enlaces de verificación y de recuperación de contraseña.'],
+    ['Alta', 'Envío real de correos', 'Configurar un servicio de correo para que lleguen las invitaciones y los enlaces de verificación y de recuperación de contraseña.'],
     ['Alta', 'Base de datos de producción', 'Reemplazar SQLite por PostgreSQL, más adecuada para varios usuarios simultáneos, y programar copias de seguridad.'],
-    ['Media', 'Envío del QR a cada invitado', 'Que cada invitado reciba por correo su invitación con el código QR, en lugar de entregárselo a mano.'],
-    ['Media', 'Confirmación por parte del invitado', 'Un enlace público en la invitación para que el propio invitado confirme o rechace su asistencia.'],
-    ['Media', 'Colaboradores en la puerta', 'Asignar colaboradores a un evento para que puedan hacer el check-in sin acceder al resto de los datos del organizador.'],
-    ['Media', 'Exportar reportes', 'Descargar la lista de asistencia y el detalle de gastos en CSV o PDF.'],
+    ['Media', 'Página principal con lugares populares', 'Portada pública con los lugares para eventos más populares, con precio aproximado, imágenes, información de contacto y otros datos obtenidos de sus páginas oficiales.'],
+    ['Media', 'Carrusel de lugares destacados', 'Carrusel al principio de la página principal con lugares que pagan para aparecer allí y recibir más visibilidad.'],
+    ['Media', 'Eventos destacados', 'Sección de la página principal con eventos destacados de los organizadores de EventPro y eventos externos.'],
+    ['Media', 'Lugares en alquiler con reservas', 'Que los dueños de salones, quintas o estadios publiquen su lugar (fotos, contacto, reseñas) y reciban solicitudes de reserva por día, que aceptan o rechazan; al aceptar, la fecha y los datos del evento pasan al calendario del dueño y el día figura como ocupado.'],
+    ['Media', 'Eliminar eventos', 'Un botón para eliminar un evento desde su detalle; hoy solo se puede desde la API.'],
     ['Baja', 'Check-in sin conexión', 'Instalar la aplicación en el celular (PWA) y guardar los ingresos sin internet para sincronizarlos después.'],
     ['Baja', 'Recordatorios', 'Avisos automáticos a los invitados unos días antes del evento.'],
     ['Baja', 'Foto de perfil', 'Permitir que cada usuario cargue una imagen de perfil.'],
+    ['Baja', 'Reportes en PDF', 'Una versión en PDF de los reportes, lista para imprimir o enviar.'],
   ], [14, 26, 60]));
+add(P('Para la información de lugares obtenida de sus páginas oficiales habrá que revisar los términos de uso de cada sitio y, cuando sea posible, usar los datos que los propios lugares publiquen o autoricen, indicando la fuente y la fecha de actualización.'));
 
 // =====================================================================
 // Referencias
@@ -602,7 +668,9 @@ const refs = [
   'MDN Web Docs. (s. f.). *MediaDevices: getUserMedia() method*. Mozilla. Recuperado el 15 de octubre de 2026, de https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia',
   'Meta Open Source. (s. f.). *React*. Recuperado el 15 de octubre de 2026, de https://react.dev/',
   'Microsoft. (s. f.). *Playwright*. Recuperado el 15 de octubre de 2026, de https://playwright.dev/',
+  'openpyxl. (s. f.). *openpyxl: A Python library to read/write Excel 2010 xlsx/xlsm files*. Recuperado el 20 de octubre de 2026, de https://openpyxl.readthedocs.io/',
   'Otsu, N. (1979). A threshold selection method from gray-level histograms. *IEEE Transactions on Systems, Man, and Cybernetics, 9*(1), 62–66. https://doi.org/10.1109/TSMC.1979.4310076',
+  'OWASP Foundation. (s. f.). *CSV Injection*. Recuperado el 20 de octubre de 2026, de https://owasp.org/www-community/attacks/CSV_Injection',
   'OWASP Foundation. (2021). *OWASP Top 10:2021*. https://owasp.org/Top10/',
   'Vite. (s. f.). *Vite*. Recuperado el 15 de octubre de 2026, de https://vite.dev/',
 ];
@@ -621,7 +689,7 @@ const tocParas = [
   ...TOC.map((e) => new Paragraph({
     tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W, leader: 'dot' }],
     indent: { left: e.level === 1 ? 0 : 480 },
-    spacing: { line: 252, lineRule: LineRuleType.AUTO, before: e.level === 1 ? 60 : 0 },
+    spacing: { line: 228, lineRule: LineRuleType.AUTO, before: e.level === 1 ? 40 : 0 },
     children: [
       new TextRun({ text: e.text, bold: e.level === 1 }),
       new TextRun({ text: `\t${pageNumbers[e.text] ?? '0'}` }),
