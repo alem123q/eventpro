@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -8,6 +9,7 @@ from .models import EmailVerificationToken, PasswordResetToken, User
 
 class AuthAPITestCase(TestCase):
     def setUp(self):
+        cache.clear()  # los limites por minuto se cuentan en la cache
         self.client = APIClient()
         self.register_url = reverse('auth:auth-register')
         self.login_url = reverse('auth:auth-login')
@@ -320,6 +322,7 @@ class AuthAPITestCase(TestCase):
 
 class AdminUserManagementTestCase(TestCase):
     def setUp(self):
+        cache.clear()  # los limites por minuto se cuentan en la cache
         self.client = APIClient()
 
         self.admin = User.objects.create_superuser(
@@ -395,6 +398,7 @@ class AdminUserManagementTestCase(TestCase):
 
 class ProfileValidationTestCase(TestCase):
     def setUp(self):
+        cache.clear()  # los limites por minuto se cuentan en la cache
         self.client = APIClient()
         self.register_url = reverse('auth:auth-register')
         self.profile_url = reverse('users:user-profile')
@@ -484,3 +488,25 @@ class ProfileValidationTestCase(TestCase):
             'last_name': 'Uppercase',
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ThrottleTests(TestCase):
+    """Los limites por minuto se aplican de verdad (antes no se aplicaban)."""
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def test_login_is_rate_limited(self):
+        url = reverse('auth:auth-login')
+        codes = [
+            self.client.post(url, {'email': 'x@x.com', 'password': 'mala'}, format='json').status_code
+            for _ in range(11)
+        ]
+        self.assertNotIn(429, codes[:10])
+        self.assertEqual(codes[10], 429)
+
+    def test_register_is_rate_limited(self):
+        url = reverse('auth:auth-register')
+        codes = [self.client.post(url, {}, format='json').status_code for _ in range(4)]
+        self.assertEqual(codes[3], 429)

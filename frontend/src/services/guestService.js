@@ -24,4 +24,14 @@ export const guestService = {
   changeRsvp(id, rsvpStatus) {
     return api.patch(`/invitations/${id}/rsvp/`, { rsvp_status: rsvpStatus });
   },
+
+  /** Envia (o reenvia) la invitacion de un invitado por correo. */
+  sendInvitation(id) {
+    return api.post(`/invitations/${id}/send/`);
+  },
+
+  /** Envia la invitacion a todos los que todavia no la recibieron. */
+  sendPending(eventId) {
+    return api.post('/invitations/send/', { event: eventId });
+  },
 };

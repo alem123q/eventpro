@@ -14,6 +14,7 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 - **Roles:** administrador, organizador y colaborador.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
+- **Invitaciones por correo:** cada invitado recibe un mail con su código QR y un enlace a una página pública (sin cuenta) donde confirma o rechaza su asistencia.
 - **Asistencia:** check-in de invitados con código QR único (se puede ver, descargar o imprimir), escaneándolo con la cámara —también desde el celular— o leyéndolo desde una foto, e historial de ingresos.
 - **Diseño adaptable:** la aplicación se puede usar desde el celular, con menú desplegable.
 - **Gastos:** registro de gastos por evento con categorías, presupuesto opcional y control de lo gastado contra lo presupuestado.
@@ -59,7 +60,8 @@ Cada app del backend separa la lógica de negocio (`services.py`) de las vistas,
 | Autenticación | `/api/auth/` (register, login, logout, refresh, verify-email, resend-verification, forgot-password, reset-password…) |
 | Usuarios | `/api/users/` |
 | Eventos | `/api/events/` |
-| Invitaciones | `/api/invitations/` |
+| Invitaciones | `/api/invitations/` (y `send/` para enviarlas por correo) |
+| Invitación pública | `/api/public/invitations/<código>/` (sin autenticación) |
 | Asistencia | `/api/attendance/` |
 | Gastos | `/api/expenses/` (y `/api/expenses/summary/?event=<id>`) |
 | Estadísticas | `/api/dashboard/stats/` |
@@ -98,7 +100,7 @@ Para escanear los QR con la cámara del celular, con el celular conectado a la m
 
 ### Emails en desarrollo
 
-En desarrollo los emails no se envían: se imprimen en la consola de Docker (`docker compose logs backend`). Los enlaces de verificación de email y de recuperación de contraseña aparecen además en una línea aparte, listos para copiar:
+En desarrollo los emails no se envían: se imprimen en la consola de Docker (`docker compose logs backend`). Los enlaces de verificación de email, de recuperación de contraseña y de las invitaciones aparecen además en una línea aparte, listos para copiar:
 
 ```
 >>> Enlace de verificación de email para usuario@correo.com:

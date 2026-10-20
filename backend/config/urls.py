@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/users/', include((users_urls.user_urlpatterns, 'users'))),
     path('api/events/', include('events.urls')),
     path('api/invitations/', include('invitations.urls')),
+    path('api/public/invitations/', include(('invitations.public_urls', 'public'))),
     path('api/dashboard/', include('dashboard.urls')),
     path('api/attendance/', include('attendance.urls')),
     path('api/expenses/', include('expenses.urls')),

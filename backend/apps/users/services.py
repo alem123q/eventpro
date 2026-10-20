@@ -7,15 +7,9 @@ from django.template.loader import render_to_string
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from config.emails import show_dev_link as _show_dev_link
+
 logger = logging.getLogger(__name__)
-
-
-def _show_dev_link(title, email, url):
-    """En desarrollo los mails se imprimen en la consola codificados
-    (quoted-printable: el enlace aparece cortado y con '=3D'). Se muestra
-    ademas el enlace limpio para poder copiarlo."""
-    if 'console' in settings.EMAIL_BACKEND:
-        print(f'\n>>> {title} para {email}:\n>>> {url}\n', flush=True)
 
 from .models import EmailVerificationToken, PasswordResetToken, User
 from .serializers import (

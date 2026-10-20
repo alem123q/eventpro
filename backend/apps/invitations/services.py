@@ -1,6 +1,10 @@
 from django.db.models import Q
-from rest_framework.exceptions import ValidationError
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, ValidationError
 
+from events.models import Event
+
+from .emails import send_invitation_email
 from .models import Invitation
 from .serializers import (
     InvitationBatchSerializer,
@@ -22,6 +26,10 @@ class InvitationService:
         rsvp_status = params.get('rsvp_status')
         if rsvp_status:
             queryset = queryset.filter(rsvp_status=rsvp_status)
+
+        # ?not_invited=true: los que todavia no recibieron la invitacion (y no ingresaron)
+        if params.get('not_invited') == 'true':
+            queryset = queryset.filter(invited_at__isnull=True, attendance__isnull=True)
 
         search = params.get('search')
         if search:
@@ -85,5 +93,82 @@ class InvitationService:
                 'detail': 'Este invitado ya ingresó al evento: no se puede quitar su confirmación.',
             })
         invitation.rsvp_status = new_status
+        # La respuesta pasa a ser del organizador, ya no la del invitado
+        invitation.responded_at = None
         invitation.save()
+        return invitation
+
+
+    # ------------------------------------------------------------------
+    # Envio por correo
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _check_can_send(event):
+        if event.status != Event.Status.ACTIVE:
+            raise ValidationError({
+                'detail': 'Solo se pueden enviar invitaciones de un evento activo. '
+                          'Activá el evento antes de enviarlas.',
+            })
+
+    @staticmethod
+    def send_invitation(invitation):
+        InvitationService._check_can_send(invitation.event)
+        if hasattr(invitation, 'attendance'):
+            raise ValidationError({'detail': 'Este invitado ya ingresó al evento.'})
+        if not send_invitation_email(invitation):
+            raise ValidationError({'detail': 'No se pudo enviar el correo. Probá de nuevo más tarde.'})
+        return invitation
+
+    @staticmethod
+    def send_pending_invitations(event):
+        """Envia la invitacion a quienes todavia no la recibieron."""
+        InvitationService._check_can_send(event)
+        pending = event.invitations.filter(invited_at__isnull=True, attendance__isnull=True)
+        sent = failed = 0
+        for invitation in pending.select_related('event__organizer'):
+            if send_invitation_email(invitation):
+                sent += 1
+            else:
+                failed += 1
+        return {'sent': sent, 'failed': failed}
+
+
+class PublicInvitationService:
+    """Lo que puede ver y hacer el invitado desde el enlace de su invitacion,
+    sin cuenta. El codigo del enlace es el mismo codigo QR (128 bits al azar)."""
+
+    RESPONSES = (Invitation.RSVPStatus.CONFIRMED, Invitation.RSVPStatus.REJECTED)
+
+    @staticmethod
+    def get(code):
+        try:
+            invitation = Invitation.objects.select_related(
+                'event__organizer', 'attendance',
+            ).get(qr_hash=code)
+        except (Invitation.DoesNotExist, ValueError):
+            raise NotFound('Invitación no encontrada.')
+        # Un borrador todavia se esta armando: no se muestra
+        if invitation.event.status == Event.Status.DRAFT:
+            raise NotFound('Invitación no encontrada.')
+        return invitation
+
+    @staticmethod
+    def closed_reason(invitation):
+        """Motivo por el que el invitado ya no puede cambiar su respuesta."""
+        if hasattr(invitation, 'attendance'):
+            return 'Ya ingresaste al evento.'
+        if invitation.event.status == Event.Status.FINISHED:
+            return 'El evento ya finalizó.'
+        return None
+
+    @staticmethod
+    def respond(invitation, new_status):
+        if new_status not in PublicInvitationService.RESPONSES:
+            raise ValidationError({'detail': 'Respuesta inválida.'})
+        reason = PublicInvitationService.closed_reason(invitation)
+        if reason:
+            raise ValidationError({'detail': f'{reason} Ya no se puede cambiar la respuesta.'})
+        invitation.rsvp_status = new_status
+        invitation.responded_at = timezone.now()
+        invitation.save(update_fields=['rsvp_status', 'responded_at', 'updated_at'])
         return invitation
