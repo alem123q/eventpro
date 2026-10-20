@@ -38,6 +38,10 @@ class Invitation(models.Model):
         default=generate_qr_hash,
         editable=False,
     )
+    # Ultimo envio de la invitacion por correo, y cuando respondio el propio
+    # invitado desde su enlace (no cuando el organizador cambia la respuesta)
+    invited_at = models.DateTimeField(_('invitación enviada'), blank=True, null=True)
+    responded_at = models.DateTimeField(_('respondió el invitado'), blank=True, null=True)
     created_at = models.DateTimeField(_('fecha de creación'), auto_now_add=True)
     updated_at = models.DateTimeField(_('fecha de actualización'), auto_now=True)
 

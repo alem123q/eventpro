@@ -1,0 +1,14 @@
+Hola {{ invitation.first_name }}:
+
+{{ organizer_name }} te invita a «{{ event.title }}».
+
+Fecha: {{ event.event_date|date:"l j \d\e F \d\e Y" }}{% if event.event_time %}, {{ event.event_time|time:"H:i" }} h{% endif %}
+{% if event.location %}Lugar: {{ event.location }}
+{% endif %}
+Para confirmar o rechazar tu asistencia, entrá a:
+{{ url }}
+
+Tu código de ingreso (mostralo en la entrada, con el QR adjunto o desde el enlace):
+{{ invitation.qr_hash }}
+
+El código solo es válido si confirmaste tu asistencia.

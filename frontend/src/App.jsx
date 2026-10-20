@@ -6,6 +6,7 @@ import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
+import InvitationPage from './pages/InvitationPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Events from './pages/Events.jsx';
 import EventDetail from './pages/EventDetail.jsx';
@@ -63,6 +64,8 @@ export default function App() {
       />
       {/* Sin PublicRoute: el enlace del mail tiene que funcionar con o sin sesion iniciada */}
       <Route path="/verify-email" element={<VerifyEmail />} />
+      {/* Pagina publica del invitado: se abre desde el correo, sin cuenta */}
+      <Route path="/invitacion/:code" element={<InvitationPage />} />
       <Route
         path="/dashboard"
         element={

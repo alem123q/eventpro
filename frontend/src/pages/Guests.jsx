@@ -20,6 +20,13 @@ const RSVP_COLORS = {
   rejected: '#ef4444',
 };
 
+// '2026-10-20T15:40:00Z' -> '20/10 12:40'
+function formatSentAt(value) {
+  return new Date(value).toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  });
+}
+
 const INITIAL_GUEST = {
   first_name: '',
   last_name: '',
@@ -49,10 +56,17 @@ export default function Guests() {
 
   const [qrGuest, setQrGuest] = useState(null);
   const [eventTitle, setEventTitle] = useState('');
+  const [eventStatus, setEventStatus] = useState('');
+
+  // Envio de invitaciones por correo
+  const [notInvited, setNotInvited] = useState(0);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendingId, setSendingId] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     eventService.retrieve(id)
-      .then(({ data }) => setEventTitle(data.title))
+      .then(({ data }) => { setEventTitle(data.title); setEventStatus(data.status); })
       .catch(() => setEventTitle(''));
   }, [id]);
 
@@ -71,6 +85,9 @@ export default function Guests() {
       setGuests(data.results || data);
       setTotal(data.count || 0);
       setTotalPages(data.total_pages || Math.ceil((data.count || 0) / PAGE_SIZE) || 1);
+      // Cuantos faltan recibir la invitacion, en todo el evento (no solo esta pagina)
+      const pending = await guestService.list({ event: id, not_invited: 'true', page_size: 1 });
+      setNotInvited(pending.data.count || 0);
     } catch {
       setError('Error al cargar invitados.');
     } finally {
@@ -190,6 +207,40 @@ export default function Guests() {
     }
   };
 
+  const handleSendPending = async () => {
+    setSendingAll(true);
+    setNotice(null);
+    try {
+      const { data } = await guestService.sendPending(Number(id));
+      const plural = data.sent === 1 ? '' : 'es';
+      let text = data.sent > 0
+        ? `✓ Se enviaron ${data.sent} invitacion${plural} por correo.`
+        : 'Todos los invitados ya tienen su invitación.';
+      if (data.failed > 0) text += ` ${data.failed} no se pudieron enviar; probá de nuevo más tarde.`;
+      setNotice({ type: data.failed > 0 ? 'warning' : 'success', text });
+      loadGuests();
+    } catch (err) {
+      setNotice({ type: 'error', text: apiErrorMessage(err, 'No se pudieron enviar las invitaciones.') });
+    } finally {
+      setSendingAll(false);
+    }
+  };
+
+  const handleSendOne = async (guest) => {
+    if (guest.invited_at && !window.confirm(`¿Reenviar la invitación a ${guest.email}?`)) return;
+    setSendingId(guest.id);
+    setNotice(null);
+    try {
+      await guestService.sendInvitation(guest.id);
+      setNotice({ type: 'success', text: `✓ Invitación enviada a ${guest.email}.` });
+      loadGuests();
+    } catch (err) {
+      setNotice({ type: 'error', text: apiErrorMessage(err, 'No se pudo enviar la invitación.') });
+    } finally {
+      setSendingId(null);
+    }
+  };
+
   const handleBulkImport = async () => {
     const lines = bulkData.trim().split('\n').filter(Boolean);
     if (lines.length === 0) return;
@@ -240,6 +291,26 @@ export default function Guests() {
         </div>
       </div>
 
+      <div className="guests-invite-bar">
+        <button
+          className="btn btn-primary"
+          onClick={handleSendPending}
+          disabled={sendingAll || eventStatus !== 'active' || notInvited === 0}
+        >
+          {sendingAll ? 'Enviando...' : `✉️ Enviar invitaciones${notInvited > 0 ? ` (${notInvited} sin enviar)` : ''}`}
+        </button>
+        <span className="guests-invite-hint">
+          {eventStatus === 'draft' && 'Activá el evento para poder enviar las invitaciones.'}
+          {eventStatus === 'finished' && 'El evento ya finalizó.'}
+          {eventStatus === 'active' && notInvited === 0 && total > 0 && 'Todos los invitados ya recibieron su invitación.'}
+          {eventStatus === 'active' && notInvited > 0 && 'Cada invitado recibe su código QR y un enlace para confirmar.'}
+        </span>
+      </div>
+
+      {notice && (
+        <div className={`guests-notice guests-notice-${notice.type}`} role="status">{notice.text}</div>
+      )}
+
       <div className="guests-filters">
         <input
           type="text"
@@ -270,8 +341,8 @@ export default function Guests() {
               <thead>
                 <tr>
                   <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Teléfono</th>
+                  <th>Contacto</th>
+                  <th>Invitación</th>
                   <th>RSVP</th>
                   <th>Asistió</th>
                   <th>Acciones</th>
@@ -281,8 +352,21 @@ export default function Guests() {
                 {guests.map((guest) => (
                   <tr key={guest.id}>
                     <td className="guest-name">{guest.first_name} {guest.last_name}</td>
-                    <td>{guest.email}</td>
-                    <td>{guest.phone || '—'}</td>
+                    <td className="guest-contact">
+                      {/* Si no entra, que el correo se corte despues de la @ */}
+                      {guest.email.split('@')[0]}@<wbr />{guest.email.split('@').slice(1).join('@')}
+                      {guest.phone && <span className="guest-phone">{guest.phone}</span>}
+                    </td>
+                    <td className="guest-invite-cell">
+                      {guest.invited_at
+                        ? (
+                          <span title="Fecha del último envío">
+                            Enviada
+                            <span className="guest-invite-date">{formatSentAt(guest.invited_at)}</span>
+                          </span>
+                        )
+                        : <span className="guest-invite-none">Sin enviar</span>}
+                    </td>
                     <td>
                       <span
                         className="rsvp-badge"
@@ -290,6 +374,11 @@ export default function Guests() {
                       >
                         {RSVP_LABELS[guest.rsvp_status]}
                       </span>
+                      {guest.responded_at && (
+                        <span className="guest-responded" title={`Respondió el ${formatSentAt(guest.responded_at)}`}>
+                          por el invitado
+                        </span>
+                      )}
                     </td>
                     <td>{guest.attended ? '✅' : '—'}</td>
                     <td>
@@ -303,6 +392,15 @@ export default function Guests() {
                           <option value="confirmed">Confirmado</option>
                           <option value="rejected">Rechazado</option>
                         </select>
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleSendOne(guest)}
+                          disabled={eventStatus !== 'active' || guest.attended || sendingId === guest.id}
+                          title={guest.invited_at ? 'Reenviar invitación por correo' : 'Enviar invitación por correo'}
+                          aria-label={`${guest.invited_at ? 'Reenviar' : 'Enviar'} invitación a ${guest.first_name}`}
+                        >
+                          {sendingId === guest.id ? '⏳' : '✉️'}
+                        </button>
                         <button
                           className="btn-icon"
                           onClick={() => setQrGuest(guest)}

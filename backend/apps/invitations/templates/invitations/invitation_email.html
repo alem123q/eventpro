@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0; padding:0; background:#f1f5f9; font-family: Arial, Helvetica, sans-serif; color:#1e293b;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9; padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; background:#ffffff; border-radius:12px; overflow:hidden;">
+        <tr><td style="background:#4f46e5; color:#ffffff; padding:20px 24px; font-size:18px; font-weight:bold;">EventPro · Invitación</td></tr>
+        <tr><td style="padding:24px;">
+          <p style="margin:0 0 12px;">Hola {{ invitation.first_name }}:</p>
+          <p style="margin:0 0 16px;"><strong>{{ organizer_name }}</strong> te invita a:</p>
+          <p style="margin:0 0 4px; font-size:22px; font-weight:bold;">{{ event.title }}</p>
+          <p style="margin:0 0 4px; color:#475569;">📅 {{ event.event_date|date:"l j \d\e F \d\e Y" }}{% if event.event_time %} · {{ event.event_time|time:"H:i" }} h{% endif %}</p>
+          {% if event.location %}<p style="margin:0 0 16px; color:#475569;">📍 {{ event.location }}</p>{% endif %}
+
+          <p style="margin:20px 0 12px;">¿Vas a poder ir?</p>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:8px;"><a href="{{ confirm_url }}" style="background:#16a34a; color:#ffffff; padding:12px 18px; border-radius:8px; text-decoration:none; font-weight:bold; display:inline-block;">Confirmo asistencia</a></td>
+            <td><a href="{{ reject_url }}" style="background:#e2e8f0; color:#1e293b; padding:12px 18px; border-radius:8px; text-decoration:none; font-weight:bold; display:inline-block;">No voy a poder ir</a></td>
+          </tr></table>
+
+          <hr style="border:none; border-top:1px solid #e2e8f0; margin:24px 0;">
+          <p style="margin:0 0 8px; font-weight:bold;">Tu código de ingreso</p>
+          <p style="margin:0 0 12px; color:#475569; font-size:14px;">Mostralo en la entrada. Solo es válido si confirmaste tu asistencia.</p>
+          <p style="text-align:center; margin:0 0 8px;"><img src="cid:{{ qr_cid }}" alt="Código QR de ingreso" width="220" height="220" style="display:inline-block;"></p>
+          <p style="text-align:center; margin:0; font-family: Consolas, monospace; font-size:12px; color:#64748b;">{{ invitation.qr_hash }}</p>
+
+          <p style="margin:24px 0 0; font-size:13px; color:#64748b;">Si los botones no funcionan, copiá este enlace en el navegador:<br><span style="word-break:break-all; color:#4f46e5;">{{ url }}</span></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

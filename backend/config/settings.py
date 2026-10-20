@@ -105,9 +105,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-LANGUAGE_CODE = 'es-cl'
+LANGUAGE_CODE = 'es-ar'
 
-TIME_ZONE = 'America/Santiago'
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
 USE_I18N = True
 
@@ -146,6 +146,7 @@ REST_FRAMEWORK = {
         'login': '10/min',
         'forgot_password': '3/min',
         'resend_verification': '3/min',
+        'public_invitation': '30/min',
     },
 }
 

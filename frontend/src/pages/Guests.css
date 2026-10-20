@@ -110,8 +110,55 @@
   transition: background 0.15s;
 }
 
-.btn-icon:hover {
+.btn-icon:hover:not(:disabled) {
   background: var(--color-border);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Envio de invitaciones por correo */
+.guests-invite-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.guests-invite-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.guests-notice {
+  margin-bottom: var(--spacing-md);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.guests-notice-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.guests-notice-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.guests-notice-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+.guest-invite-cell {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.guest-invite-none {
+  color: var(--color-text-light);
+}
+
+.guest-responded {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
 }
 
 .guests-error {
@@ -205,4 +252,22 @@
     flex-wrap: wrap;
     gap: var(--spacing-md);
   }
+}
+
+.guest-contact {
+  overflow-wrap: break-word;
+}
+
+.guest-invite-date {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.guest-phone {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
 }

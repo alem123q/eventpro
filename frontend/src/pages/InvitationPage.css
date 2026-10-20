@@ -1,0 +1,195 @@
+.invite-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.invite-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.invite-card-message {
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.invite-card-message h1 {
+  font-size: 1.3rem;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invite-image {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+.invite-body {
+  padding: var(--spacing-lg);
+}
+
+.invite-greeting {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+.invite-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: var(--spacing-xs) 0 var(--spacing-md);
+  line-height: 1.25;
+}
+
+.invite-details {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text);
+}
+
+.invite-details li {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.invite-details a {
+  color: var(--color-primary);
+}
+
+.invite-description {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  white-space: pre-line;
+  margin-bottom: var(--spacing-md);
+}
+
+.invite-rsvp,
+.invite-qr {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.invite-rsvp h2,
+.invite-qr h2 {
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.invite-status {
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+}
+
+.invite-status-pending { color: #92400e; }
+.invite-status-confirmed { color: #166534; }
+.invite-status-rejected { color: var(--color-text-secondary); }
+
+.invite-hint {
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invite-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.invite-buttons .btn {
+  flex: 1 1 180px;
+  padding: 12px 16px;
+  font-size: 1rem;
+}
+
+.invite-btn-yes {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+}
+
+.invite-btn-yes:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.invite-buttons .btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* El boton que se toco en el correo se resalta */
+.invite-btn-suggested:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.35);
+}
+
+.invite-note,
+.invite-closed {
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.invite-closed {
+  font-weight: 600;
+}
+
+.invite-error {
+  margin-top: var(--spacing-sm);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.invite-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-sm);
+}
+
+.invite-qr p {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.invite-qr img {
+  width: 240px;
+  height: 240px;
+}
+
+.invite-qr code {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  word-break: break-all;
+}
+
+.invite-qr .btn {
+  text-decoration: none;
+}
+
+.invite-footer {
+  margin-top: var(--spacing-md);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 0.9rem;
+}

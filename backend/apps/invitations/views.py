@@ -1,16 +1,17 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from config.pagination import DefaultPagination
+from config.throttles import PublicInvitationThrottle
 from events.models import Event
 
 from .models import Invitation
 from .permissions import CanManageGuests, IsEventOrganizer
-from .serializers import InvitationSerializer
-from .services import InvitationService
+from .serializers import InvitationSerializer, PublicInvitationSerializer
+from .services import InvitationService, PublicInvitationService
 
 
 @api_view(['GET', 'POST'])
@@ -109,3 +110,59 @@ def invitation_rsvp(request, pk):
     invitation = InvitationService.change_rsvp(invitation, new_status)
     serializer = InvitationSerializer(invitation)
     return Response(serializer.data)
+
+
+def _get_own_invitation(request, pk):
+    try:
+        invitation = Invitation.objects.select_related(
+            'event__organizer', 'attendance',
+        ).get(id=pk)
+    except Invitation.DoesNotExist:
+        raise NotFound('Invitación no encontrada.')
+    if not IsEventOrganizer().has_object_permission(request, None, invitation):
+        raise PermissionDenied('No tienes permiso para gestionar este invitado.')
+    return invitation
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated & CanManageGuests])
+def invitation_send(request, pk):
+    """Envia (o reenvia) la invitacion de un invitado por correo."""
+    invitation = _get_own_invitation(request, pk)
+    invitation = InvitationService.send_invitation(invitation)
+    return Response(InvitationSerializer(invitation).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated & CanManageGuests])
+def invitation_send_pending(request):
+    """Envia la invitacion a todos los invitados del evento que todavia no la recibieron."""
+    event_id = request.data.get('event')
+    try:
+        event = Event.objects.select_related('organizer').get(id=event_id)
+    except (Event.DoesNotExist, ValueError, TypeError):
+        raise NotFound('Evento no encontrado.')
+    if not (request.user.role == 'admin' or event.organizer == request.user):
+        raise PermissionDenied('No tienes permiso para gestionar invitados de este evento.')
+    result = InvitationService.send_pending_invitations(event)
+    return Response(result)
+
+
+# ----------------------------------------------------------------------
+# Pagina publica del invitado (sin cuenta)
+# ----------------------------------------------------------------------
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@throttle_classes([PublicInvitationThrottle])
+def public_invitation(request, code):
+    invitation = PublicInvitationService.get(code)
+    return Response(PublicInvitationSerializer(invitation).data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([PublicInvitationThrottle])
+def public_invitation_respond(request, code):
+    invitation = PublicInvitationService.get(code)
+    invitation = PublicInvitationService.respond(invitation, request.data.get('rsvp_status'))
+    return Response(PublicInvitationSerializer(invitation).data)
