@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
+from config import csv_export
 from events.models import Event
 
 from .emails import send_invitation_email
@@ -131,6 +132,40 @@ class InvitationService:
             else:
                 failed += 1
         return {'sent': sent, 'failed': failed}
+
+
+class InvitationExportService:
+    HEADER = [
+        'Nombre', 'Apellido', 'Email', 'Teléfono', 'Respuesta',
+        'Respondió el invitado', 'Invitación enviada', 'Ingresó', 'Hora de ingreso',
+    ]
+
+    @staticmethod
+    def guests_csv(event):
+        labels = dict(Invitation.RSVPStatus.choices)
+        invitations = (
+            event.invitations.select_related('attendance')
+            .order_by('last_name', 'first_name')
+        )
+        rows = []
+        for inv in invitations:
+            # Sin ingreso, Django lanza un error que hereda de AttributeError
+            attendance = getattr(inv, 'attendance', None)
+            rows.append([
+                inv.first_name,
+                inv.last_name,
+                inv.email,
+                inv.phone or '',
+                labels.get(inv.rsvp_status, inv.rsvp_status),
+                csv_export.yes_no(inv.responded_at),
+                csv_export.datetime_local(inv.invited_at),
+                csv_export.yes_no(attendance),
+                csv_export.datetime_local(attendance.checkin_time) if attendance else '',
+            ])
+        return csv_export.csv_response(
+            csv_export.filename_for('invitados', event.title),
+            InvitationExportService.HEADER, rows,
+        )
 
 
 class PublicInvitationService:

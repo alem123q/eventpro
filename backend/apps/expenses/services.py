@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db.models import Count, Sum
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
+from config import csv_export
 from events.models import Event
 
 from .models import Expense
@@ -83,3 +84,33 @@ class ExpenseService:
             'count': expenses.count(),
             'by_category': by_category,
         }
+
+
+class ExpenseExportService:
+    HEADER = ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas']
+
+    @staticmethod
+    def expenses_csv(event):
+        labels = dict(Expense.Category.choices)
+        expenses = Expense.objects.filter(event=event).order_by('expense_date', 'created_at')
+        rows = [
+            [
+                csv_export.date(e.expense_date),
+                e.concept,
+                labels.get(e.category, e.category),
+                e.paid_by,
+                csv_export.money(e.amount),
+                e.notes,
+            ]
+            for e in expenses
+        ]
+        summary = ExpenseService.summary(event)
+        rows.append([])
+        rows.append(['', 'Total gastado', '', '', csv_export.money(summary['total']), ''])
+        if summary['budget'] is not None:
+            rows.append(['', 'Presupuesto', '', '', csv_export.money(summary['budget']), ''])
+            rows.append(['', 'Disponible', '', '', csv_export.money(summary['remaining']), ''])
+        return csv_export.csv_response(
+            csv_export.filename_for('gastos', event.title),
+            ExpenseExportService.HEADER, rows,
+        )

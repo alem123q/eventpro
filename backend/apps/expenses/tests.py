@@ -221,3 +221,62 @@ class EventBudgetTests(TestCase):
             'title': 'X', 'event_date': '2026-12-01', 'budget': '-1',
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ExpenseExportTests(TestCase):
+    def setUp(self):
+        self.organizer = make_user(1)
+        self.other = make_user(2)
+        self.client = APIClient()
+        self.client.force_authenticate(self.organizer)
+        self.event = Event.objects.create(
+            title='Asado de fin de año', event_date='2026-12-01',
+            organizer=self.organizer, budget=Decimal('10000'),
+        )
+        Expense.objects.create(event=self.event, concept='Carne', category='catering',
+                               amount=Decimal('4500.5'), paid_by='Eloy', expense_date='2026-11-20')
+        Expense.objects.create(event=self.event, concept='Parlante', category='sound_lighting',
+                               amount=Decimal('1200'), expense_date='2026-11-10')
+
+    def _rows(self, response):
+        text = response.content.decode('utf-8')
+        self.assertTrue(text.startswith('﻿'))
+        return [line.split(';') for line in text.lstrip('﻿').split('\r\n')]
+
+    def test_export_expenses_for_excel(self):
+        response = self.client.get(reverse('expense-export'), {'event': self.event.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
+        self.assertIn('gastos-asado-de-fin-de-ano-', response['Content-Disposition'])
+        rows = self._rows(response)
+        self.assertEqual(rows[0], ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas'])
+        # Ordenados por fecha, con coma decimal y la categoria en castellano
+        self.assertEqual(rows[1], ['10/11/2026', 'Parlante', 'Sonido e iluminación', '', '1200,00', ''])
+        self.assertEqual(rows[2], ['20/11/2026', 'Carne', 'Catering', 'Eloy', '4500,50', ''])
+        self.assertIn(['', 'Total gastado', '', '', '5700,50', ''], rows)
+        self.assertIn(['', 'Presupuesto', '', '', '10000,00', ''], rows)
+        self.assertIn(['', 'Disponible', '', '', '4299,50', ''], rows)
+
+    def test_export_without_budget_has_no_budget_rows(self):
+        self.event.budget = None
+        self.event.save()
+
+        rows = self._rows(self.client.get(reverse('expense-export'), {'event': self.event.id}))
+
+        self.assertNotIn('Presupuesto', [r[1] for r in rows if len(r) > 1])
+
+    def test_formula_like_text_is_neutralized(self):
+        Expense.objects.create(event=self.event, concept='=HYPERLINK("http://x")', amount=Decimal('1'))
+
+        text = self.client.get(reverse('expense-export'), {'event': self.event.id}).content.decode('utf-8')
+
+        self.assertIn("'=HYPERLINK", text)
+
+    def test_other_organizer_cannot_export(self):
+        client = APIClient()
+        client.force_authenticate(self.other)
+
+        response = client.get(reverse('expense-export'), {'event': self.event.id})
+
+        self.assertEqual(response.status_code, 403)

@@ -4,6 +4,7 @@ import { PAGE_SIZE } from '../constants';
 import { attendanceService } from '../services/attendanceService';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
+import DownloadCsvButton from '../components/DownloadCsvButton';
 import './AttendanceHistory.css';
 
 export default function AttendanceHistory() {
@@ -76,6 +77,12 @@ export default function AttendanceHistory() {
           <h1>Historial de Asistencia</h1>
           {event && <p className="attendance-event-title">{event.title}</p>}
         </div>
+        <DownloadCsvButton
+          url="/invitations/export/"
+          params={{ event: id }}
+          fallbackName="invitados.csv"
+          label="Descargar invitados y asistencia"
+        />
       </div>
 
       {attendances.length === 0 ? (
