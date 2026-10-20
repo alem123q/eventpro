@@ -21,7 +21,7 @@ export default function EventCard({ event }) {
   const navigate = useNavigate();
 
   const date = parseEventDate(event.event_date);
-  const formattedDate = date.toLocaleDateString('es-CL', {
+  const formattedDate = date.toLocaleDateString('es-AR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -42,6 +42,12 @@ export default function EventCard({ event }) {
         <span className="event-card-category">{getCategoryLabel(event.category)}</span>
       </div>
       <h3 className="event-card-title">{event.title}</h3>
+      {event.my_role === 'collaborator' && (
+        <p className="event-card-collab">
+          <span className="event-card-collab-badge">Colaborador</span>
+          Organiza {event.organizer_name}
+        </p>
+      )}
       <p className="event-card-description">{event.description}</p>
       <div className="event-card-footer">
         <span className="event-card-date">{formattedDate}</span>

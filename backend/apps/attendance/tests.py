@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
-from events.models import Event
+from events.models import Event, EventCollaborator
 from invitations.models import Invitation
 from users.models import User
 
@@ -325,13 +325,19 @@ class CanManageAttendancePermissionTests(TestCase):
         req = self._MockRequest(self.organizer, {'event': '99999'})
         self.assertFalse(self.permission.has_permission(req, self._MockView()))
 
-    def test_collaborator_denied(self):
+    def test_user_without_event_param_passes_but_list_is_filtered(self):
+        # Sin evento, la vista lista solo los eventos que organiza o donde colabora
         req = self._MockRequest(self.collaborator)
-        self.assertFalse(self.permission.has_permission(req, self._MockView()))
+        self.assertTrue(self.permission.has_permission(req, self._MockView()))
 
-    def test_collaborator_with_event_param_denied(self):
+    def test_unassigned_collaborator_with_event_param_denied(self):
         req = self._MockRequest(self.collaborator, {'event': str(self.event.id)})
         self.assertFalse(self.permission.has_permission(req, self._MockView()))
+
+    def test_assigned_collaborator_with_event_param_allowed(self):
+        EventCollaborator.objects.create(event=self.event, user=self.collaborator)
+        req = self._MockRequest(self.collaborator, {'event': str(self.event.id)})
+        self.assertTrue(self.permission.has_permission(req, self._MockView()))
 
     def test_unauthenticated_denied(self):
         anon = type('AnonUser', (), {'is_authenticated': False, 'role': ''})()
@@ -378,9 +384,10 @@ class CanCheckinPermissionTests(TestCase):
         req = self._MockRequest(self.admin)
         self.assertTrue(self.permission.has_permission(req, self._MockView()))
 
-    def test_collaborator_lacks_view_permission(self):
+    def test_any_authenticated_user_passes_view_permission(self):
+        # El permiso real se decide por evento (has_object_permission)
         req = self._MockRequest(self.collaborator)
-        self.assertFalse(self.permission.has_permission(req, self._MockView()))
+        self.assertTrue(self.permission.has_permission(req, self._MockView()))
 
     def test_unauthenticated_lacks_view_permission(self):
         anon = type('AnonUser', (), {'is_authenticated': False, 'role': ''})()
@@ -405,9 +412,16 @@ class CanCheckinPermissionTests(TestCase):
             self.permission.has_object_permission(req, self._MockView(), self.other_event),
         )
 
-    def test_collaborator_lacks_object_permission(self):
+    def test_unassigned_collaborator_lacks_object_permission(self):
         req = self._MockRequest(self.collaborator)
         self.assertFalse(
+            self.permission.has_object_permission(req, self._MockView(), self.event),
+        )
+
+    def test_assigned_collaborator_has_object_permission(self):
+        EventCollaborator.objects.create(event=self.event, user=self.collaborator)
+        req = self._MockRequest(self.collaborator)
+        self.assertTrue(
             self.permission.has_object_permission(req, self._MockView(), self.event),
         )
 

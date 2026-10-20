@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PAGE_SIZE } from '../constants';
 import { guestService } from '../services/guestService';
 import { attendanceService } from '../services/attendanceService';
+import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
 import { apiErrorMessage } from '../utils/format';
 import './CheckIn.css';
@@ -58,6 +59,13 @@ export default function CheckIn() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [readingPhoto, setReadingPhoto] = useState(false);
   const photoInputRef = useRef(null);
+  const [myRole, setMyRole] = useState(null);
+
+  useEffect(() => {
+    eventService.retrieve(id)
+      .then(({ data }) => setMyRole(data.my_role))
+      .catch(() => setMyRole(null));
+  }, [id]);
 
   const loadGuests = async () => {
     setLoading(true);
@@ -274,7 +282,9 @@ export default function CheckIn() {
             <section className="checkin-group">
               <h2 className="checkin-group-title">Sin confirmar ({unconfirmed.length})</h2>
               <p className="checkin-group-hint">
-                Para registrar su ingreso, primero marcalos como confirmados en la lista de invitados.
+                {myRole === 'collaborator'
+                  ? 'Para registrar su ingreso, el organizador tiene que marcarlos como confirmados.'
+                  : 'Para registrar su ingreso, primero marcalos como confirmados en la lista de invitados.'}
               </p>
               <div className="checkin-guest-list">
                 {unconfirmed.map((guest) => (

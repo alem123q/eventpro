@@ -1,7 +1,7 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 
-from events.models import Event
+from events.models import Event, EventCollaborator
 from invitations.models import Invitation
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -28,7 +28,8 @@ class AttendanceService:
             )
 
         if user.role != 'admin':
-            queryset = queryset.filter(event__organizer=user)
+            collaborations = EventCollaborator.objects.filter(user=user).values('event_id')
+            queryset = queryset.filter(Q(event__organizer=user) | Q(event_id__in=collaborations))
 
         return queryset.order_by('-checkin_time')
 

@@ -80,3 +80,33 @@ class Event(models.Model):
 
     def can_transition_to(self, new_status):
         return new_status in self.VALID_TRANSITIONS.get(self.status, [])
+
+
+class EventCollaborator(models.Model):
+    """Persona que ayuda en la puerta de un evento: puede hacer el check-in y
+    ver la asistencia, pero no modificar el evento, los invitados ni los gastos."""
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='collaborators',
+        verbose_name=_('evento'),
+    )
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='collaborations',
+        verbose_name=_('usuario'),
+    )
+    added_at = models.DateTimeField(_('agregado el'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('colaborador')
+        verbose_name_plural = _('colaboradores')
+        ordering = ['added_at']
+        constraints = [
+            models.UniqueConstraint(fields=['event', 'user'], name='uq_event_collaborator'),
+        ]
+
+    def __str__(self):
+        return f'{self.user.email} en {self.event.title}'

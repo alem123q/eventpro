@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from config import excel_export
-from events.models import Event
+from events.models import Event, EventCollaborator
 
 from .emails import send_invitation_email
 from .models import Invitation
@@ -41,7 +41,10 @@ class InvitationService:
             )
 
         if user.role != 'admin':
-            queryset = queryset.filter(event__organizer=user)
+            # Los invitados de sus eventos y de los eventos donde colabora
+            # (el colaborador los necesita para el check-in)
+            collaborations = EventCollaborator.objects.filter(user=user).values('event_id')
+            queryset = queryset.filter(Q(event__organizer=user) | Q(event_id__in=collaborations))
 
         return queryset.order_by('-created_at')
 

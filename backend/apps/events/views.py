@@ -7,9 +7,10 @@ from rest_framework.response import Response
 from config.pagination import DefaultPagination
 
 from .models import Event
+from .access import is_organizer
 from .permissions import CanCreateEvent, CanDeleteEvent, IsEventOrganizer
-from .serializers import EventDetailSerializer, EventListSerializer
-from .services import EventService
+from .serializers import EventCollaboratorSerializer, EventDetailSerializer, EventListSerializer
+from .services import CollaboratorService, EventService
 
 
 @api_view(['GET', 'POST'])
@@ -19,12 +20,12 @@ def event_list_create(request):
         events = EventService.list_events(request.user, request.query_params)
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(events, request)
-        serializer = EventListSerializer(page, many=True)
+        serializer = EventListSerializer(page, many=True, context={'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
     event = EventService.create_event(request.user, request.data)
     event = EventService._base_queryset().get(id=event.id)
-    serializer = EventDetailSerializer(event)
+    serializer = EventDetailSerializer(event, context={'user': request.user})
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -39,14 +40,14 @@ def event_detail(request, pk):
     if request.method == 'GET':
         if not IsEventOrganizer().has_object_permission(request, None, event):
             raise PermissionDenied('No tienes permiso para ver este evento.')
-        serializer = EventDetailSerializer(event)
+        serializer = EventDetailSerializer(event, context={'user': request.user})
         return Response(serializer.data)
 
     if request.method in ('PUT', 'PATCH'):
         if not IsEventOrganizer().has_object_permission(request, None, event):
             raise PermissionDenied('No tienes permiso para modificar este evento.')
         event = EventService.update_event(event, request.data)
-        serializer = EventDetailSerializer(event)
+        serializer = EventDetailSerializer(event, context={'user': request.user})
         return Response(serializer.data)
 
     if request.method == 'DELETE':
@@ -75,5 +76,35 @@ def event_change_status(request, pk):
         )
 
     event = EventService.change_status(event, new_status)
-    serializer = EventDetailSerializer(event)
+    serializer = EventDetailSerializer(event, context={'user': request.user})
     return Response(serializer.data)
+
+
+def _get_own_event(request, pk):
+    """Evento que el usuario organiza (o cualquiera, si es administrador)."""
+    try:
+        event = Event.objects.select_related('organizer').get(id=pk)
+    except Event.DoesNotExist:
+        raise NotFound('Evento no encontrado.')
+    if not is_organizer(request.user, event):
+        raise PermissionDenied('Solo el organizador puede gestionar los colaboradores.')
+    return event
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def event_collaborators(request, pk):
+    event = _get_own_event(request, pk)
+    if request.method == 'POST':
+        collaborator = CollaboratorService.add(event, request.data.get('email'))
+        return Response(EventCollaboratorSerializer(collaborator).data, status=status.HTTP_201_CREATED)
+    collaborators = CollaboratorService.list(event)
+    return Response(EventCollaboratorSerializer(collaborators, many=True).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def event_collaborator_remove(request, pk, user_id):
+    event = _get_own_event(request, pk)
+    CollaboratorService.remove(event, user_id)
+    return Response(status=status.HTTP_204_NO_CONTENT)

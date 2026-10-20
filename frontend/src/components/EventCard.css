@@ -81,3 +81,21 @@
   object-fit: cover;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
+
+.event-card-collab {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 8px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.event-card-collab-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}

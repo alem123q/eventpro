@@ -11,7 +11,7 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 ## Funcionalidades
 
 - **Cuentas de usuario:** registro con verificación de email, inicio de sesión con JWT, recuperación y cambio de contraseña, y perfil de usuario.
-- **Roles:** administrador, organizador y colaborador.
+- **Roles:** administrador y organizador; cada organizador puede sumar colaboradores a un evento, que hacen el check-in en la puerta sin acceso a invitados, gastos ni reportes.
 - **Eventos:** alta, edición y baja de eventos con fecha, hora, ubicación, categoría e imagen. Cada evento pasa por los estados borrador → activo → finalizado.
 - **Invitados:** carga de invitados por evento y seguimiento de su respuesta (pendiente, confirmado o rechazado).
 - **Invitaciones por correo:** cada invitado recibe un mail con su código QR y un enlace a una página pública (sin cuenta) donde confirma o rechaza su asistencia.
@@ -60,7 +60,7 @@ Cada app del backend separa la lógica de negocio (`services.py`) de las vistas,
 |---|---|
 | Autenticación | `/api/auth/` (register, login, logout, refresh, verify-email, resend-verification, forgot-password, reset-password…) |
 | Usuarios | `/api/users/` |
-| Eventos | `/api/events/` |
+| Eventos | `/api/events/` (y `<id>/collaborators/` para los colaboradores) |
 | Invitaciones | `/api/invitations/` (`send/` para enviarlas por correo, `export/?event=<id>` para el Excel) |
 | Invitación pública | `/api/public/invitations/<código>/` (sin autenticación) |
 | Asistencia | `/api/attendance/` |

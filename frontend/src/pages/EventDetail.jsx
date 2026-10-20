@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getCategoryLabel } from '../constants/categories';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
+import EventCollaborators from '../components/EventCollaborators';
 import './EventDetail.css';
 import { mediaUrl, parseEventDate } from '../utils/format';
 
@@ -42,8 +43,11 @@ export default function EventDetail() {
       try {
         const { data } = await eventService.retrieve(id);
         if (!cancelled) setEvent(data);
-      } catch {
-        if (!cancelled) setError('Error al cargar el evento.');
+      } catch (err) {
+        if (cancelled) return;
+        setError(err.response?.status === 404
+          ? 'Este evento no existe o ya no tenés acceso a él.'
+          : 'Error al cargar el evento.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -85,7 +89,10 @@ export default function EventDetail() {
 
   if (!event) return null;
 
-  const date = parseEventDate(event.event_date).toLocaleDateString('es-CL', {
+  // El colaborador solo trabaja en la puerta: ve el evento, el check-in y la asistencia
+  const isCollaborator = event.my_role === 'collaborator';
+
+  const date = parseEventDate(event.event_date).toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -109,6 +116,7 @@ export default function EventDetail() {
             </span>
             <h1>{event.title}</h1>
           </div>
+          {!isCollaborator && (
           <div className="detail-actions">
             {NEXT_STATUS[event.status] && (
               <button
@@ -123,7 +131,15 @@ export default function EventDetail() {
               Editar
             </button>
           </div>
+          )}
         </div>
+
+        {isCollaborator && (
+          <p className="detail-collab-banner">
+            Colaborás en este evento, organizado por <strong>{event.organizer_name}</strong>.
+            Podés registrar el ingreso de los invitados y ver la asistencia.
+          </p>
+        )}
 
         {statusError && <p className="detail-status-error">{statusError}</p>}
 
@@ -150,6 +166,8 @@ export default function EventDetail() {
             )}
           </div>
 
+          {!isCollaborator && (
+          <>
           <div className="detail-section">
             <h3>Invitados</h3>
             <button
@@ -171,6 +189,8 @@ export default function EventDetail() {
               </button>
             </div>
           </div>
+          </>
+          )}
 
           <div className="detail-section">
             <h3>Asistencia</h3>
@@ -189,6 +209,13 @@ export default function EventDetail() {
               </button>
             </div>
           </div>
+
+          {!isCollaborator && (
+            <div className="detail-section">
+              <h3>Colaboradores</h3>
+              <EventCollaborators eventId={event.id} />
+            </div>
+          )}
         </div>
       </div>
     </div>

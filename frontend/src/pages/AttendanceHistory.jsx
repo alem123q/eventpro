@@ -77,12 +77,15 @@ export default function AttendanceHistory() {
           <h1>Historial de Asistencia</h1>
           {event && <p className="attendance-event-title">{event.title}</p>}
         </div>
-        <DownloadButton
-          url="/invitations/export/"
-          params={{ event: id }}
-          fallbackName="invitados.xlsx"
-          label="Descargar invitados y asistencia"
-        />
+        {/* El Excel tiene datos de contacto: solo para el organizador */}
+        {event && event.my_role !== 'collaborator' && (
+          <DownloadButton
+            url="/invitations/export/"
+            params={{ event: id }}
+            fallbackName="invitados.xlsx"
+            label="Descargar invitados y asistencia"
+          />
+        )}
       </div>
 
       {attendances.length === 0 ? (
