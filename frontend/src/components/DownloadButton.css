@@ -1,10 +1,10 @@
-.download-csv {
+.download-file {
   display: inline-flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.download-csv-error {
+.download-file-error {
   font-size: 0.8rem;
   color: var(--color-danger);
 }

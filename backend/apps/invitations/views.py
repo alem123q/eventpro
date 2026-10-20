@@ -151,7 +151,7 @@ def invitation_send_pending(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated & CanManageGuests])
 def invitation_export(request):
-    """Descarga en CSV los invitados del evento, con su respuesta y su ingreso."""
+    """Descarga en Excel los invitados del evento, con su respuesta y su ingreso."""
     event_id = request.query_params.get('event')
     try:
         event = Event.objects.select_related('organizer').get(id=event_id)
@@ -159,7 +159,7 @@ def invitation_export(request):
         raise NotFound('Evento no encontrado.')
     if not (request.user.role == 'admin' or event.organizer == request.user):
         raise PermissionDenied('No tienes permiso para descargar los invitados de este evento.')
-    return InvitationExportService.guests_csv(event)
+    return InvitationExportService.guests_xlsx(event)
 
 
 # ----------------------------------------------------------------------

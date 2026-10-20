@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { expenseService } from '../services/expenseService';
 import Loading from '../components/Loading';
-import DownloadCsvButton from '../components/DownloadCsvButton';
+import DownloadButton from '../components/DownloadButton';
 import { apiErrorMessage, formatMoney, parseEventDate } from '../utils/format';
 import './Expenses.css';
 
@@ -223,10 +223,10 @@ export default function Expenses() {
           </p>
         </div>
         <div className="expenses-header-actions">
-          <DownloadCsvButton
+          <DownloadButton
             url="/expenses/export/"
             params={{ event: id }}
-            fallbackName="gastos.csv"
+            fallbackName="gastos.xlsx"
           />
           <button className="btn btn-primary" onClick={openCreate}>
             + Agregar gasto

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import api from '../services/api';
-import './DownloadCsvButton.css';
+import './DownloadButton.css';
 
-// 'attachment; filename="gastos-asado-2026-10-20.csv"' -> 'gastos-asado-2026-10-20.csv'
+// 'attachment; filename="gastos-asado-2026-10-20.xlsx"' -> 'gastos-asado-2026-10-20.xlsx'
 function fileNameFrom(disposition, fallback) {
   const match = /filename="?([^";]+)"?/i.exec(disposition || '');
   return match ? match[1] : fallback;
@@ -19,10 +19,10 @@ async function blobErrorMessage(err) {
 }
 
 /**
- * Boton que descarga un CSV generado por la API. La descarga pasa por el
+ * Boton que descarga un archivo (por ejemplo, un reporte en Excel) generado por la API. La descarga pasa por el
  * cliente de la API para enviar el token: un enlace comun no lo enviaria.
  */
-export default function DownloadCsvButton({ url, params, fallbackName = 'reporte.csv', label = 'Descargar CSV' }) {
+export default function DownloadButton({ url, params, fallbackName = 'reporte.xlsx', label = 'Descargar Excel' }) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,17 +48,17 @@ export default function DownloadCsvButton({ url, params, fallbackName = 'reporte
   };
 
   return (
-    <span className="download-csv">
+    <span className="download-file">
       <button
         type="button"
         className="btn btn-secondary"
         onClick={handleClick}
         disabled={downloading}
-        title="Archivo para abrir en Excel"
+        title="Descarga un archivo de Excel (.xlsx)"
       >
         {downloading ? 'Descargando...' : `⬇️ ${label}`}
       </button>
-      {error && <span className="download-csv-error" role="alert">{error}</span>}
+      {error && <span className="download-file-error" role="alert">{error}</span>}
     </span>
   );
 }

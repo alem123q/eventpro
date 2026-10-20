@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db.models import Count, Sum
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
-from config import csv_export
+from config import excel_export
 from events.models import Event
 
 from .models import Expense
@@ -88,29 +88,38 @@ class ExpenseService:
 
 class ExpenseExportService:
     HEADER = ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas']
+    AMOUNT_COL = 'E'
 
     @staticmethod
-    def expenses_csv(event):
+    def expenses_xlsx(event):
+        F = excel_export.Formula
         labels = dict(Expense.Category.choices)
+        report = excel_export.Report(
+            'Gastos', ExpenseExportService.HEADER,
+            formats={0: excel_export.DATE, 4: excel_export.MONEY},
+        )
         expenses = Expense.objects.filter(event=event).order_by('expense_date', 'created_at')
-        rows = [
-            [
-                csv_export.date(e.expense_date),
+        for e in expenses:
+            report.add_row([
+                e.expense_date,
                 e.concept,
                 labels.get(e.category, e.category),
-                e.paid_by,
-                csv_export.money(e.amount),
-                e.notes,
-            ]
-            for e in expenses
-        ]
-        summary = ExpenseService.summary(event)
-        rows.append([])
-        rows.append(['', 'Total gastado', '', '', csv_export.money(summary['total']), ''])
-        if summary['budget'] is not None:
-            rows.append(['', 'Presupuesto', '', '', csv_export.money(summary['budget']), ''])
-            rows.append(['', 'Disponible', '', '', csv_export.money(summary['remaining']), ''])
-        return csv_export.csv_response(
-            csv_export.filename_for('gastos', event.title),
-            ExpenseExportService.HEADER, rows,
-        )
+                e.paid_by or None,
+                e.amount,
+                e.notes or None,
+            ])
+        last = report.last_row
+        report.add_filter(last)
+
+        # Totales con formulas: si se agrega un gasto a mano, se recalculan
+        col = ExpenseExportService.AMOUNT_COL
+        report.add_row([])
+        total = F(f'=SUM({col}2:{col}{last})') if last >= 2 else 0
+        total_row = report.add_row([None, 'Total gastado', None, None, total, None], bold=True)
+        if event.budget is not None:
+            budget_row = report.add_row([None, 'Presupuesto', None, None, event.budget, None], bold=True)
+            report.add_row(
+                [None, 'Disponible', None, None, F(f'={col}{budget_row}-{col}{total_row}'), None],
+                bold=True,
+            )
+        return report.response(excel_export.filename_for('gastos', event.title))

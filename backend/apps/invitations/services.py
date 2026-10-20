@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from config import csv_export
+from config import excel_export
 from events.models import Event
 
 from .emails import send_invitation_email
@@ -141,31 +141,32 @@ class InvitationExportService:
     ]
 
     @staticmethod
-    def guests_csv(event):
+    def guests_xlsx(event):
         labels = dict(Invitation.RSVPStatus.choices)
+        report = excel_export.Report(
+            'Invitados', InvitationExportService.HEADER,
+            formats={6: excel_export.DATETIME, 8: excel_export.DATETIME},
+        )
         invitations = (
             event.invitations.select_related('attendance')
             .order_by('last_name', 'first_name')
         )
-        rows = []
         for inv in invitations:
             # Sin ingreso, Django lanza un error que hereda de AttributeError
             attendance = getattr(inv, 'attendance', None)
-            rows.append([
+            report.add_row([
                 inv.first_name,
                 inv.last_name,
                 inv.email,
-                inv.phone or '',
+                inv.phone or None,
                 labels.get(inv.rsvp_status, inv.rsvp_status),
-                csv_export.yes_no(inv.responded_at),
-                csv_export.datetime_local(inv.invited_at),
-                csv_export.yes_no(attendance),
-                csv_export.datetime_local(attendance.checkin_time) if attendance else '',
+                excel_export.yes_no(inv.responded_at),
+                excel_export.local_naive(inv.invited_at),
+                excel_export.yes_no(attendance),
+                excel_export.local_naive(attendance.checkin_time) if attendance else None,
             ])
-        return csv_export.csv_response(
-            csv_export.filename_for('invitados', event.title),
-            InvitationExportService.HEADER, rows,
-        )
+        report.add_filter(report.last_row)
+        return report.response(excel_export.filename_for('invitados', event.title))
 
 
 class PublicInvitationService:

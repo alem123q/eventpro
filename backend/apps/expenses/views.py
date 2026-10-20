@@ -66,6 +66,6 @@ def expense_categories(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated & CanManageExpenses])
 def expense_export(request):
-    """Descarga en CSV los gastos del evento, con el total y el presupuesto."""
+    """Descarga en Excel los gastos del evento, con el total y el presupuesto."""
     event = ExpenseService.get_event(request.query_params.get('event'), request.user)
-    return ExpenseExportService.expenses_csv(event)
+    return ExpenseExportService.expenses_xlsx(event)

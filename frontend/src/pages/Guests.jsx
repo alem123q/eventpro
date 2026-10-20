@@ -5,7 +5,7 @@ import { guestService } from '../services/guestService';
 import { eventService } from '../services/eventService';
 import Loading from '../components/Loading';
 import GuestQrModal from '../components/GuestQrModal';
-import DownloadCsvButton from '../components/DownloadCsvButton';
+import DownloadButton from '../components/DownloadButton';
 import { apiErrorMessage } from '../utils/format';
 import './Guests.css';
 
@@ -283,10 +283,10 @@ export default function Guests() {
           <p className="guests-count">{total} invitado{total !== 1 ? 's' : ''}</p>
         </div>
         <div className="guests-actions">
-          <DownloadCsvButton
+          <DownloadButton
             url="/invitations/export/"
             params={{ event: id }}
-            fallbackName="invitados.csv"
+            fallbackName="invitados.xlsx"
           />
           <button className="btn btn-secondary" onClick={() => setBulkModalOpen(true)}>
             Importar CSV

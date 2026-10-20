@@ -238,40 +238,74 @@ class ExpenseExportTests(TestCase):
         Expense.objects.create(event=self.event, concept='Parlante', category='sound_lighting',
                                amount=Decimal('1200'), expense_date='2026-11-10')
 
-    def _rows(self, response):
-        text = response.content.decode('utf-8')
-        self.assertTrue(text.startswith('﻿'))
-        return [line.split(';') for line in text.lstrip('﻿').split('\r\n')]
+    def _sheet(self):
+        import io
 
-    def test_export_expenses_for_excel(self):
+        from openpyxl import load_workbook
         response = self.client.get(reverse('expense-export'), {'event': self.event.id})
-
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
+        return response, load_workbook(io.BytesIO(response.content)).active
+
+    def test_export_expenses_to_excel(self):
+        import datetime
+        response, ws = self._sheet()
+
+        self.assertIn('spreadsheetml', response['Content-Type'])
         self.assertIn('gastos-asado-de-fin-de-ano-', response['Content-Disposition'])
-        rows = self._rows(response)
-        self.assertEqual(rows[0], ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas'])
-        # Ordenados por fecha, con coma decimal y la categoria en castellano
-        self.assertEqual(rows[1], ['10/11/2026', 'Parlante', 'Sonido e iluminación', '', '1200,00', ''])
-        self.assertEqual(rows[2], ['20/11/2026', 'Carne', 'Catering', 'Eloy', '4500,50', ''])
-        self.assertIn(['', 'Total gastado', '', '', '5700,50', ''], rows)
-        self.assertIn(['', 'Presupuesto', '', '', '10000,00', ''], rows)
-        self.assertIn(['', 'Disponible', '', '', '4299,50', ''], rows)
+        self.assertTrue(response['Content-Disposition'].rstrip('"').endswith('.xlsx'))
+        self.assertEqual([c.value for c in ws[1]], ['Fecha', 'Concepto', 'Categoría', 'Pagado por', 'Monto', 'Notas'])
+        # Ordenados por fecha; la fecha es una fecha real y el monto un numero con formato moneda
+        self.assertEqual(ws['A2'].value, datetime.datetime(2026, 11, 10))
+        self.assertEqual(ws['A2'].number_format, 'DD/MM/YYYY')
+        self.assertEqual(ws['C2'].value, 'Sonido e iluminación')
+        self.assertEqual(ws['E3'].value, 4500.5)
+        self.assertEqual(ws['E3'].number_format, '"$" #,##0.00')
+        self.assertEqual(ws.freeze_panes, 'A2')
+        self.assertEqual(ws.auto_filter.ref, 'A1:F3')
+
+    def test_totals_are_formulas(self):
+        _, ws = self._sheet()
+
+        # Fila 4 vacia; luego total, presupuesto y disponible
+        self.assertIsNone(ws['B4'].value)
+        self.assertEqual(ws['B5'].value, 'Total gastado')
+        self.assertEqual(ws['E5'].value, '=SUM(E2:E3)')
+        self.assertTrue(ws['B5'].font.bold)
+        self.assertEqual(ws['E6'].value, 10000)
+        self.assertEqual(ws['E7'].value, '=E6-E5')
+        self.assertEqual(ws['E7'].number_format, '"$" #,##0.00')
+
+    def test_columns_are_wide_enough(self):
+        _, ws = self._sheet()
+
+        self.assertGreaterEqual(ws.column_dimensions['A'].width, 10)
+        self.assertGreaterEqual(ws.column_dimensions['C'].width, len('Sonido e iluminación'))
 
     def test_export_without_budget_has_no_budget_rows(self):
         self.event.budget = None
         self.event.save()
 
-        rows = self._rows(self.client.get(reverse('expense-export'), {'event': self.event.id}))
+        _, ws = self._sheet()
 
-        self.assertNotIn('Presupuesto', [r[1] for r in rows if len(r) > 1])
+        self.assertNotIn('Presupuesto', [c.value for c in ws['B']])
 
-    def test_formula_like_text_is_neutralized(self):
-        Expense.objects.create(event=self.event, concept='=HYPERLINK("http://x")', amount=Decimal('1'))
+    def test_export_without_expenses(self):
+        Expense.objects.all().delete()
 
-        text = self.client.get(reverse('expense-export'), {'event': self.event.id}).content.decode('utf-8')
+        _, ws = self._sheet()
 
-        self.assertIn("'=HYPERLINK", text)
+        self.assertEqual(ws['B3'].value, 'Total gastado')
+        self.assertEqual(ws['E3'].value, 0)
+
+    def test_formula_like_text_is_saved_as_text(self):
+        Expense.objects.create(event=self.event, concept='=HYPERLINK("http://x")', amount=Decimal('1'),
+                               expense_date='2026-11-30')
+
+        _, ws = self._sheet()
+
+        cell = ws['B4']
+        self.assertEqual(cell.value, '=HYPERLINK("http://x")')
+        self.assertEqual(cell.data_type, 's')
 
     def test_other_organizer_cannot_export(self):
         client = APIClient()
