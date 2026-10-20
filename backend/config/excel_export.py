@@ -54,6 +54,11 @@ class Report:
             cell.fill = HEADER_FILL
             cell.alignment = Alignment(vertical='center')
         self.ws.freeze_panes = 'A2'  # el encabezado queda fijo al bajar
+        # Al imprimir: horizontal y todas las columnas en el ancho de la hoja
+        self.ws.page_setup.orientation = 'landscape'
+        self.ws.sheet_properties.pageSetUpPr.fitToPage = True
+        self.ws.page_setup.fitToWidth = 1
+        self.ws.page_setup.fitToHeight = 0
 
     @property
     def last_row(self):

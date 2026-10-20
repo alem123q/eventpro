@@ -22,6 +22,10 @@ Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf)
 - **Dashboard:** métricas generales de eventos, invitaciones y asistencia.
 - **Calendario:** vista de los eventos por fecha.
 
+📋 El detalle de cada funcionalidad y **85 pruebas manuales** para verificarlas (pasos y resultado esperado) están en [`docs/FUNCIONALIDADES_Y_PRUEBAS.md`](docs/FUNCIONALIDADES_Y_PRUEBAS.md).
+
+📄 El informe del proyecto está en [`docs/informe/`](docs/informe/) y la presentación en [`docs/presentacion/`](docs/presentacion/).
+
 ## Tecnologías
 
 | Capa | Stack |
