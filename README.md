@@ -4,8 +4,6 @@ Aplicación web para organizar eventos de punta a punta: crear el evento, invita
 
 Proyecto de la materia Programación — Universidad Nacional de Rafaela (UNRaf).
 
-> 🚧 **En desarrollo.** Algunas funciones todavía están en construcción.
-
 ---
 
 ## Funcionalidades
